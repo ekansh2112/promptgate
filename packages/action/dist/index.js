@@ -149089,12 +149089,16 @@ var GeminiProvider = class extends BaseProvider {
           );
           const status = statusMatch ? Number(statusMatch[1]) : 0;
           if (status === 429) {
-            const delay2 = parseRetryDelayMs(error.message);
-            console.warn(
-              `Gemini rate limited (${model}); waiting ${Math.round(delay2 / 1e3)}s`
-            );
-            await sleep(delay2);
-            continue;
+            if (attempt < 3) {
+              const delay2 = Math.min(parseRetryDelayMs(error.message), 2e4);
+              console.warn(
+                `Gemini rate limited (${model}); waiting ${Math.round(delay2 / 1e3)}s`
+              );
+              await sleep(delay2);
+              continue;
+            }
+            console.error(`Gemini still rate limited after retries (${model})`);
+            return this.handleError(error);
           }
           const tryNextModel = status === 404 || status === 400;
           if (tryNextModel) {
@@ -149152,7 +149156,8 @@ var GeminiProvider = class extends BaseProvider {
           "Content-Type": "application/json",
           "User-Agent": "PromptGate/1.0"
         },
-        body: JSON.stringify({ contents, generationConfig })
+        body: JSON.stringify({ contents, generationConfig }),
+        signal: AbortSignal.timeout(45e3)
       }
     );
     const latencyMs = Date.now() - startTime;

@@ -70,12 +70,16 @@ export class GeminiProvider extends BaseProvider {
           const status = statusMatch ? Number(statusMatch[1]) : 0;
 
           if (status === 429) {
-            const delay = parseRetryDelayMs(error.message);
-            console.warn(
-              `Gemini rate limited (${model}); waiting ${Math.round(delay / 1000)}s`
-            );
-            await sleep(delay);
-            continue;
+            if (attempt < 3) {
+              const delay = Math.min(parseRetryDelayMs(error.message), 20_000);
+              console.warn(
+                `Gemini rate limited (${model}); waiting ${Math.round(delay / 1000)}s`
+              );
+              await sleep(delay);
+              continue;
+            }
+            console.error(`Gemini still rate limited after retries (${model})`);
+            return this.handleError(error);
           }
 
           const tryNextModel = status === 404 || status === 400;
@@ -147,6 +151,7 @@ export class GeminiProvider extends BaseProvider {
           'User-Agent': 'PromptGate/1.0',
         },
         body: JSON.stringify({ contents, generationConfig }),
+        signal: AbortSignal.timeout(45_000),
       }
     );
 
