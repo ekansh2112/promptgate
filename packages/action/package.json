@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "esbuild src/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=dist/index.js --banner:js='import { createRequire } from \"module\"; const require = createRequire(import.meta.url);'",
-    "test": "vitest run",
+    "test": "echo 'No unit tests for action (tested via dogfooding workflow)'",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist node_modules .turbo"
   },
