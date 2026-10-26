@@ -147,16 +147,33 @@ export class PromptGateEngine {
     promptConfig: PromptConfig
   ): Promise<PromptResult | null> {
     const testSet = await this.loadTestSet(promptConfig.testSet);
-    const basePromptText = await this.loadPromptFromRef(
+    
+    // Try git show for base, fall back to file read
+    let basePromptText = await this.loadPromptFromRef(
       promptConfig.path,
       this.options.baseRef
     );
-    const headPromptText = await this.loadPromptFromRef(
-      promptConfig.path,
-      this.options.headRef
-    );
-
-    if (!basePromptText || !headPromptText) {
+    if (!basePromptText) {
+      try {
+        basePromptText = await this.loadPrompt(promptConfig.path);
+      } catch {
+        return null;
+      }
+    }
+    
+    // For head, read from workspace (current checkout)
+    let headPromptText: string | null;
+    try {
+      headPromptText = await this.loadPrompt(promptConfig.path);
+    } catch {
+      // Fall back to git show for head
+      headPromptText = await this.loadPromptFromRef(
+        promptConfig.path,
+        this.options.headRef
+      );
+    }
+    
+    if (!headPromptText) {
       return null;
     }
 
