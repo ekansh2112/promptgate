@@ -80,22 +80,17 @@ async function run() {
   }
 }
 
-async function getChangedFiles(): Promise<string[]> {
-  if (!github.context.payload.pull_request) {
+async function getChangedFiles(baseRef: string, headRef: string): Promise<string[]> {
+  const { execSync } = await import('child_process');
+  try {
+    const output = execSync(`git diff --name-only ${baseRef} ${headRef}`, {
+      cwd: process.env.GITHUB_WORKSPACE || process.cwd(),
+      encoding: 'utf-8',
+    });
+    return output.trim().split('\n').filter(Boolean);
+  } catch {
     return [];
   }
-
-  const token = process.env.GITHUB_TOKEN;
-  if (!token) return [];
-
-  const octokit = github.getOctokit(token);
-  const { data: files } = await octokit.rest.pulls.listFiles({
-    owner: github.context.repo.owner,
-    repo: github.context.repo.repo,
-    pull_number: github.context.payload.pull_request.number,
-  });
-
-  return files.map((f) => f.filename);
 }
 
 async function checkoutRef(ref: string, targetDir: string) {
