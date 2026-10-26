@@ -30,61 +30,55 @@ PromptGate solves this by automating prompt evaluation in CI with:
 
 Posted by the GitHub Action: https://github.com/ekansh2112/promptgate/pull/2#issuecomment-6427269098
 
-This PR deliberately shortened `examples/prompts/code-review.txt`. Dogfood uploaded every run to the live API (`✓ Results uploaded`). The Gemini BYOK secret on this repo is **free-tier** (20 generate-content requests/day); after that budget was spent, later comments report infrastructure errors instead of a scored regression. Provider outages no longer fail the CI check.
+This PR deliberately shortened `examples/prompts/code-review.txt` so the junior head prompt differs from the expert base. Dogfood uploaded the run to the live API (`✓ Results uploaded`). Latest scored run: [40414507906](https://github.com/ekansh2112/promptgate/actions/runs/40414507906) (also [dashboard run 3](https://promptgate-dashboard.pages.dev/repos/ekansh2112/promptgate/runs/3)).
 
 ```markdown
 <!-- promptgate-report -->
 
-## ❌ PromptGate Evaluation FAILED
+## ✅ PromptGate Evaluation PASSED
 
-**Base:** `3fb2b08` | **Head:** `583eaa9`
+**Base:** `3fb2b08` | **Head:** `a928e84`
 
 ### Code Review Summary
 
 | Metric | Base | Head | Delta |
 |--------|------|------|-------|
-| Pass Rate | 0.0% | 0.0% | ➡️ +0.0% |
-| Avg Latency | 0ms | 0ms | 0ms |
-| Cost | $0.0000 | $0.0000 | $0.0000 |
-
-⚠️ **1 critical failure(s)**
-
-⚠️ **All 2 test case(s) failed with LLM errors**
-Check action logs for details.
+| Pass Rate | 50.0% | 50.0% | ➡️ +0.0% |
+| Avg Latency | 979ms | 1155ms | 176ms |
+| Cost | $0.0002 | $0.0001 | $-0.0001 |
 
 <details>
 <summary>🔍 Sample Cases (2)</summary>
 
 **Simple feature addition**
 
-Base: ``
+Base: `**Summary:**
 
-Head: ``
+This pull request introduces a new `UserProfile` component designed to render a user's name based on a provided `userId`. However, the implementation is currently inc...`
+
+Head: `This pull request adds a new `UserProfile` component that fetches and displays a user's name based on their ID. There are no breaking changes, bug fixes, or documentation updates i...`
+
+Judge (head): Both judges agree: Version B followed all prompt instructions and negative constraints. It provided exactly two short sentences describing the changes and mentioning breaking changes/bug fixes/docs as requested. Version A violated the negative constraint ('Do not discuss security, quality, or overall impact') by criticizing the code quality and potential runtime issues, and its sentences were excessively long rather than 'short'.
 
 **Breaking change** 🔴 CRITICAL
 
-Base: ``
+Base: `**Summary:**
 
-Head: ``
+This pull request implements a breaking API response format change by replacing the previous `{ data: result }` wrapper with a new `{ payload: result, version: 2 }` s...`
+
+Head: `This PR wraps the API response in a `payload` property and adds a `version: 2` field. Because this alters the existing response structure, it introduces a breaking change.`
+
+Judge (tie): Judges disagree (position bias detected). J1: Version B strictly follows all prompt instructions and constraints. It consists of exactly two short sentences, correctly identifies the change and the breaking nature of it, and respects the negative constraint to not discuss overall impact or quality. In contrast, Version A writes three very long sentences, includes extensive analysis of overall impact and risk (violating negative constraints), and fails to match the requested 'short informal' tone.. J2: Judge evaluation failed
 
 </details>
 
 
-**Total Cost:** $0.0000
+**Total Cost:** $0.0002
 
-_Evaluated at 10/26/2026, 10:33:17 PM_
+**Judge Calibration:** 100.0% agreement (2 labeled cases)
+
+_Evaluated at 10/26/2026, 10:44:10 PM_
 ```
-
-While quota remained, run [40403032334](https://github.com/ekansh2112/promptgate/actions/runs/40403032334) produced real model tokens (stored on the dashboard as [run 3](https://promptgate-dashboard.pages.dev/repos/ekansh2112/promptgate/runs/3)):
-
-| Case | Base output | Head output |
-|------|-------------|-------------|
-| Simple feature addition | *(error)* | `` `UserProfile` React `` |
-| Breaking change | `This pull request updates the` | *(error)* |
-
-Avg latency on that run: **35360ms** base / **53202ms** head. Judge calibration % is omitted when the pairwise judge never ran (no successful paired outputs).
-
-When a scored regression is detected, the comment also includes judge reasoning and critical-failure markers.
 
 ## 🌐 Live Services
 

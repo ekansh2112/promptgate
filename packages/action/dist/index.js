@@ -148619,9 +148619,61 @@ function deepEqual(a, b) {
   return true;
 }
 function parseJudgeResponse(content) {
+  if (!content || !content.trim()) {
+    throw new Error("Empty judge response");
+  }
   const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const raw = (fenced ? fenced[1] : content).trim();
-  return JSON.parse(raw);
+  let raw = (fenced ? fenced[1] : content).trim();
+  const objectMatch = raw.match(/\{[\s\S]*\}/);
+  if (objectMatch) {
+    raw = objectMatch[0];
+  }
+  raw = raw.replace(/,\s*([}\]])/g, "$1");
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    const prefMatch = content.match(
+      /preferred["'\s:=]+["']?(A|B|tie|base|head)/i
+    );
+    if (!prefMatch) {
+      throw new Error("Judge response was not valid JSON");
+    }
+    const reasonMatch = content.match(
+      /reasoning["'\s:=]+["']([^"']{1,500})/i
+    );
+    parsed = {
+      preferred: prefMatch[1],
+      reasoning: reasonMatch?.[1] || "",
+      confidence: 0.5
+    };
+  }
+  const preferred = String(
+    parsed.preferred ?? parsed.winner ?? parsed.choice ?? ""
+  ).trim();
+  if (!preferred) {
+    throw new Error("Judge response missing preferred");
+  }
+  const confidence = Number(parsed.confidence);
+  return {
+    preferred,
+    reasoning: String(parsed.reasoning ?? ""),
+    confidence: Number.isFinite(confidence) ? confidence : 0.5
+  };
+}
+function mapPreferred(preferred) {
+  const p = preferred.toLowerCase();
+  if (p === "a" || p === "base") return "base";
+  if (p === "b" || p === "head") return "head";
+  return "tie";
+}
+function failedJudge(message) {
+  return {
+    preferredVersion: "tie",
+    reasoning: `Judge evaluation failed: ${message}`,
+    confidence: 0,
+    error: message
+  };
 }
 function computeContextFreeScore(response) {
   let validJson = false;
@@ -148677,20 +148729,16 @@ Respond in JSON format:
       temperature: 0.3
     });
     if (response.error || response.refusal) {
-      throw new Error(response.error || "Judge call failed");
+      return failedJudge(response.error || "Judge call refused");
     }
     const parsed = parseJudgeResponse(response.content);
     return {
-      preferredVersion: parsed.preferred === "A" ? "base" : parsed.preferred === "B" ? "head" : "tie",
+      preferredVersion: mapPreferred(parsed.preferred),
       reasoning: parsed.reasoning || "",
       confidence: parsed.confidence || 0.5
     };
   } catch (error) {
-    return {
-      preferredVersion: "tie",
-      reasoning: "Judge evaluation failed",
-      confidence: 0
-    };
+    return failedJudge(error.message || "Judge evaluation failed");
   }
 }
 async function runBidirectionalJudge(provider, rubric, promptText, input, baseOutput, headOutput, judgeModel = DEFAULT_JUDGE_MODEL) {
@@ -148712,6 +148760,14 @@ async function runBidirectionalJudge(provider, rubric, promptText, input, baseOu
     baseOutput,
     judgeModel
   );
+  if (judge1.error || judge2.error) {
+    return {
+      preferredVersion: "tie",
+      reasoning: `inconclusive (judge error). J1: ${judge1.reasoning}. J2: ${judge2.reasoning}`,
+      confidence: 0,
+      error: judge1.error || judge2.error
+    };
+  }
   const reverseMapping = {
     base: "head",
     head: "base",
@@ -149113,7 +149169,7 @@ var GeminiProvider = class extends BaseProvider {
   async call(params) {
     const startTime = Date.now();
     let lastError = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 4; attempt++) {
       try {
         await this.throttle();
         return await this.callModel(params.model, params, startTime);
@@ -149126,10 +149182,14 @@ var GeminiProvider = class extends BaseProvider {
         const daily = /per day|requests per day|retry in \d+h/i.test(
           error.message
         );
-        if (status === 429 && !daily && attempt < 2) {
-          const delay2 = Math.min(parseRetryDelayMs(error.message), 15e3);
+        const retryable = !daily && (status === 429 || status === 500 || status === 502 || status === 503 || status === 504);
+        if (retryable && attempt < 3) {
+          const delay2 = Math.min(
+            status === 429 ? parseRetryDelayMs(error.message) : 2e3 * 2 ** attempt,
+            15e3
+          );
           console.warn(
-            `Gemini rate limited (${params.model}); waiting ${Math.round(delay2 / 1e3)}s`
+            `Gemini ${status} (${params.model}); retrying in ${Math.round(delay2 / 1e3)}s`
           );
           await sleep(delay2);
           continue;

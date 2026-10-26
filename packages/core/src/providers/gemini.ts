@@ -38,7 +38,7 @@ export class GeminiProvider extends BaseProvider {
     const startTime = Date.now();
     let lastError: Error | null = null;
 
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 4; attempt++) {
       try {
         await this.throttle();
         return await this.callModel(params.model, params, startTime);
@@ -52,10 +52,22 @@ export class GeminiProvider extends BaseProvider {
           error.message
         );
 
-        if (status === 429 && !daily && attempt < 2) {
-          const delay = Math.min(parseRetryDelayMs(error.message), 15_000);
+        const retryable =
+          !daily &&
+          (status === 429 ||
+            status === 500 ||
+            status === 502 ||
+            status === 503 ||
+            status === 504);
+        if (retryable && attempt < 3) {
+          const delay = Math.min(
+            status === 429
+              ? parseRetryDelayMs(error.message)
+              : 2_000 * 2 ** attempt,
+            15_000
+          );
           console.warn(
-            `Gemini rate limited (${params.model}); waiting ${Math.round(delay / 1000)}s`
+            `Gemini ${status} (${params.model}); retrying in ${Math.round(delay / 1000)}s`
           );
           await sleep(delay);
           continue;

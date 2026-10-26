@@ -51,6 +51,7 @@ export interface JudgeResult {
   preferredVersion: 'base' | 'head' | 'tie';
   reasoning: string;
   confidence: number;
+  error?: string;
 }
 
 export interface CaseResult {
