@@ -148763,11 +148763,13 @@ var PromptGateEngine = class {
   }
   async evalPrompt(promptConfig) {
     const testSet = await this.loadTestSet(promptConfig.testSet);
-    const basePromptText = await this.loadPrompt(
-      path.join(this.options.baseDir, promptConfig.path)
+    const basePromptText = await this.loadPromptFromRef(
+      promptConfig.path,
+      this.options.baseRef
     );
-    const headPromptText = await this.loadPrompt(
-      path.join(this.options.headDir, promptConfig.path)
+    const headPromptText = await this.loadPromptFromRef(
+      promptConfig.path,
+      this.options.headRef
     );
     const caseResults = [];
     for (const testCase of testSet) {
@@ -148908,6 +148910,18 @@ var PromptGateEngine = class {
   }
   async loadPrompt(filePath) {
     return fs.readFile(filePath, "utf-8");
+  }
+  async loadPromptFromRef(promptPath, ref) {
+    const { execSync } = await import("child_process");
+    try {
+      const output = execSync(`git show ${ref}:${promptPath}`, {
+        cwd: process.cwd(),
+        encoding: "utf-8"
+      });
+      return output;
+    } catch (error) {
+      throw new Error(`Failed to load prompt from ${ref}:${promptPath}: ${error.message}`);
+    }
   }
   async loadTestSet(filePath) {
     const content = await fs.readFile(filePath, "utf-8");
@@ -149174,13 +149188,9 @@ async function run() {
     core.info(`Head: ${headRef}`);
     const changedFiles = await getChangedFiles(baseRef, headRef);
     core.info(`Changed files: ${changedFiles.length}`);
-    await checkoutRef(baseRef, "/tmp/promptgate-base");
-    await checkoutRef(headRef, "/tmp/promptgate-head");
     const provider = await createProvider(apiUrl);
     const engine = new PromptGateEngine({
       configPath: path2.join(workspacePath, configPath),
-      baseDir: "/tmp/promptgate-base",
-      headDir: "/tmp/promptgate-head",
       provider,
       baseRef,
       headRef,
@@ -149226,19 +149236,6 @@ async function getChangedFiles(baseRef, headRef) {
   } catch {
     return [];
   }
-}
-async function checkoutRef(ref, targetDir) {
-  const { execSync } = await import("child_process");
-  const workspace = process.env.GITHUB_WORKSPACE || process.cwd();
-  await fs2.mkdir(targetDir, { recursive: true });
-  execSync(`cp -r ${workspace}/. ${targetDir}/`, {
-    cwd: workspace,
-    stdio: "inherit"
-  });
-  execSync(`git checkout ${ref}`, {
-    cwd: targetDir,
-    stdio: "inherit"
-  });
 }
 async function createProvider(apiUrl) {
   const geminiKey = process.env.GEMINI_API_KEY;

@@ -316,6 +316,19 @@ export class PromptGateEngine {
     return fs.readFile(filePath, 'utf-8');
   }
 
+  private async loadPromptFromRef(promptPath: string, ref: string): Promise<string> {
+    const { execSync } = await import('child_process');
+    try {
+      const output = execSync(`git show ${ref}:${promptPath}`, {
+        cwd: process.cwd(),
+        encoding: 'utf-8',
+      });
+      return output;
+    } catch (error: any) {
+      throw new Error(`Failed to load prompt from ${ref}:${promptPath}: ${error.message}`);
+    }
+  }
+
   private async loadTestSet(filePath: string): Promise<TestSet> {
     const content = await fs.readFile(filePath, 'utf-8');
     const parsed = YAML.parse(content);
