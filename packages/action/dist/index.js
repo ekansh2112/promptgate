@@ -148396,6 +148396,7 @@ var import_yaml = __toESM(require_dist5());
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+var import_yaml2 = __toESM(require_dist5());
 var AssertionSchema = external_exports.discriminatedUnion("type", [
   external_exports.object({
     type: external_exports.literal("contains"),
@@ -149150,6 +149151,13 @@ var ProxyProvider = class extends BaseProvider {
     return 0;
   }
 };
+var CalibrationLabelSchema = external_exports.object({
+  promptName: external_exports.string(),
+  caseName: external_exports.string(),
+  output: external_exports.string(),
+  label: external_exports.enum(["good", "bad"])
+});
+var CalibrationFileSchema = external_exports.array(CalibrationLabelSchema);
 
 // src/index.ts
 async function run() {

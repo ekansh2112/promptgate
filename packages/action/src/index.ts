@@ -153,8 +153,8 @@ async function postPRComment(report: EvalReport) {
     issue_number: github.context.payload.pull_request.number,
   });
 
-  const existingComment = comments.find(
-    (c) => c.user?.type === 'Bot' && c.body?.includes('<!-- promptgate-report -->')
+    const existingComment = comments.find(
+    (c: any) => c.user?.type === 'Bot' && c.body?.includes('<!-- promptgate-report -->')
   );
 
   if (existingComment) {
