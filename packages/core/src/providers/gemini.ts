@@ -6,12 +6,7 @@ interface GeminiConfig {
   baseUrl?: string;
 }
 
-const MODEL_FALLBACKS = [
-  'gemini-2.0-flash',
-  'gemini-2.5-flash',
-  'gemini-1.5-flash',
-  'gemini-flash-latest',
-];
+const MODEL_FALLBACKS: string[] = [];
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -39,7 +34,7 @@ export class GeminiProvider extends BaseProvider {
     this.baseUrl =
       config.baseUrl || 'https://generativelanguage.googleapis.com/v1beta';
     const fromEnv = Number(process.env.GEMINI_MIN_INTERVAL_MS);
-    this.minIntervalMs = Number.isFinite(fromEnv) && fromEnv >= 0 ? fromEnv : 12_500;
+    this.minIntervalMs = Number.isFinite(fromEnv) && fromEnv >= 0 ? fromEnv : 4_000;
   }
 
   async call(params: ModelCall): Promise<LLMResponse> {
@@ -70,6 +65,14 @@ export class GeminiProvider extends BaseProvider {
           const status = statusMatch ? Number(statusMatch[1]) : 0;
 
           if (status === 429) {
+            const daily =
+              /per day|requests per day|retry in \d+h/i.test(error.message);
+            if (daily) {
+              console.error(
+                `Gemini daily quota exceeded (${model}). Add a paid key or wait.`
+              );
+              return this.handleError(error);
+            }
             if (attempt < 3) {
               const delay = Math.min(parseRetryDelayMs(error.message), 20_000);
               console.warn(

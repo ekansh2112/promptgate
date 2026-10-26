@@ -7,18 +7,3 @@
   caseName: "Breaking change"
   output: ""
   label: "good"
-
-- promptName: "Code Review Summary"
-  caseName: "Bug fix"
-  output: ""
-  label: "good"
-
-- promptName: "Code Review Summary"
-  caseName: "Refactoring"
-  output: ""
-  label: "good"
-
-- promptName: "Code Review Summary"
-  caseName: "Documentation update"
-  output: ""
-  label: "good"

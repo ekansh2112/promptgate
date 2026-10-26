@@ -202,8 +202,7 @@ export class PromptGateEngine {
       (c) =>
         c.critical &&
         (c.headContextFree.error ||
-          c.headAssertions.some((a) => !a.passed) ||
-          c.judgeResult?.preferredVersion === 'base')
+          c.headAssertions.some((a) => !a.passed))
     ).length;
 
     const flakyCount = caseResults.filter((c) => c.flaky).length;

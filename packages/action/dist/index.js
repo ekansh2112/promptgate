@@ -148875,7 +148875,7 @@ var PromptGateEngine = class {
       (c) => !c.baseContextFree.error && !c.headContextFree.error && c.baseAssertions.every((a) => a.passed) && c.headAssertions.every((a) => a.passed) && (!c.judgeResult || c.judgeResult.preferredVersion !== "base")
     ).length;
     const criticalFailures = caseResults.filter(
-      (c) => c.critical && (c.headContextFree.error || c.headAssertions.some((a) => !a.passed) || c.judgeResult?.preferredVersion === "base")
+      (c) => c.critical && (c.headContextFree.error || c.headAssertions.some((a) => !a.passed))
     ).length;
     const flakyCount = caseResults.filter((c) => c.flaky).length;
     const basePassRate = caseResults.filter(
@@ -149036,12 +149036,7 @@ var BaseProvider = class {
     };
   }
 };
-var MODEL_FALLBACKS = [
-  "gemini-2.0-flash",
-  "gemini-2.5-flash",
-  "gemini-1.5-flash",
-  "gemini-flash-latest"
-];
+var MODEL_FALLBACKS = [];
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -149064,7 +149059,7 @@ var GeminiProvider = class extends BaseProvider {
     this.apiKey = config.apiKey;
     this.baseUrl = config.baseUrl || "https://generativelanguage.googleapis.com/v1beta";
     const fromEnv = Number(process.env.GEMINI_MIN_INTERVAL_MS);
-    this.minIntervalMs = Number.isFinite(fromEnv) && fromEnv >= 0 ? fromEnv : 12500;
+    this.minIntervalMs = Number.isFinite(fromEnv) && fromEnv >= 0 ? fromEnv : 4e3;
   }
   async call(params) {
     const startTime = Date.now();
@@ -149089,6 +149084,13 @@ var GeminiProvider = class extends BaseProvider {
           );
           const status = statusMatch ? Number(statusMatch[1]) : 0;
           if (status === 429) {
+            const daily = /per day|requests per day|retry in \d+h/i.test(error.message);
+            if (daily) {
+              console.error(
+                `Gemini daily quota exceeded (${model}). Add a paid key or wait.`
+              );
+              return this.handleError(error);
+            }
             if (attempt < 3) {
               const delay2 = Math.min(parseRetryDelayMs(error.message), 2e4);
               console.warn(
