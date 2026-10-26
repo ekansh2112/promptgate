@@ -49,6 +49,12 @@ export function RunDetail() {
   const [results, setResults] = useState<PromptResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [trends, setTrends] = useState<Record<string, TrendPoint[]>>({});
+  const [calibrationAgreement, setCalibrationAgreement] = useState<number | null>(
+    null
+  );
+  const [calibrationSampleSize, setCalibrationSampleSize] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
     fetchRunDetail();
@@ -73,6 +79,13 @@ export function RunDetail() {
 
       const data = await response.json();
       setResults(data.prompts || []);
+      if (data.calibrationAgreement != null) {
+        setCalibrationAgreement(data.calibrationAgreement);
+        setCalibrationSampleSize(data.calibrationSampleSize ?? null);
+      } else if (data.run?.calibration_agreement != null) {
+        setCalibrationAgreement(data.run.calibration_agreement);
+        setCalibrationSampleSize(data.run.calibration_sample_size ?? null);
+      }
 
       // Fetch trends for each prompt
       const trendData: Record<string, TrendPoint[]> = {};
@@ -110,6 +123,15 @@ export function RunDetail() {
       <h1 style={{ marginBottom: '24px', fontSize: '32px', fontWeight: '700' }}>
         Run #{runId}
       </h1>
+      {calibrationAgreement != null && (
+        <div className="card" style={{ marginBottom: '16px' }}>
+          <strong>Judge Calibration:</strong>{' '}
+          {calibrationAgreement.toFixed(1)}% agreement
+          {calibrationSampleSize != null
+            ? ` (${calibrationSampleSize} labeled cases)`
+            : ''}
+        </div>
+      )}
       {results.length === 0 ? (
         <div className="card">
           <p style={{ color: '#6e6e73' }}>No details available for this run.</p>

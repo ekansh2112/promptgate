@@ -110,9 +110,9 @@ export class PromptGateEngine {
         }
 
         const agreement = calculateJudgeAgreement(labels, judgeResults);
-        if (agreement > 0) {
-          calibrationAgreement = agreement * 100; // Convert to percentage
-          calibrationSampleSize = judgeResults.length;
+        if (agreement.totalCases > 0) {
+          calibrationAgreement = agreement.agreementPercentage;
+          calibrationSampleSize = agreement.totalCases;
         }
       }
     } catch {
@@ -307,8 +307,8 @@ export class PromptGateEngine {
       promptConfig.rubric &&
       !baseResponse.error &&
       !headResponse.error &&
-      baseAssertions.every((a) => a.passed) &&
-      headAssertions.every((a) => a.passed)
+      baseResponse.content &&
+      headResponse.content
     ) {
       judgeResult = await runBidirectionalJudge(
         this.provider,
@@ -360,6 +360,11 @@ export class PromptGateEngine {
       temperature: config.temperature,
       maxTokens: config.maxTokens,
     });
+
+    if (response.error) {
+      console.error(`LLM error (${config.model}): ${response.error}`);
+      return response;
+    }
 
     this.cache.set(hash, response);
     return response;

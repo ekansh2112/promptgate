@@ -148727,13 +148727,13 @@ async function loadCalibrationLabels(filePath) {
 }
 function calculateJudgeAgreement(labels, judgeResults) {
   if (labels.length === 0 || judgeResults.length === 0) {
-    return 0;
+    return { agreementPercentage: 0, totalCases: 0 };
   }
   let agreements = 0;
   let comparisons = 0;
   for (const result of judgeResults) {
     const label = labels.find(
-      (l) => l.promptName === result.promptName && l.caseName === result.caseName && l.output === result.output
+      (l) => l.promptName === result.promptName && l.caseName === result.caseName
     );
     if (!label) continue;
     comparisons++;
@@ -148743,8 +148743,13 @@ function calculateJudgeAgreement(labels, judgeResults) {
       agreements++;
     }
   }
-  if (comparisons === 0) return 0;
-  return agreements / comparisons;
+  if (comparisons === 0) {
+    return { agreementPercentage: 0, totalCases: 0 };
+  }
+  return {
+    agreementPercentage: agreements / comparisons * 100,
+    totalCases: comparisons
+  };
 }
 var PromptGateEngine = class {
   config;
@@ -148803,9 +148808,9 @@ var PromptGateEngine = class {
           }
         }
         const agreement = calculateJudgeAgreement(labels, judgeResults);
-        if (agreement > 0) {
-          calibrationAgreement = agreement * 100;
-          calibrationSampleSize = judgeResults.length;
+        if (agreement.totalCases > 0) {
+          calibrationAgreement = agreement.agreementPercentage;
+          calibrationSampleSize = agreement.totalCases;
         }
       }
     } catch {
@@ -148938,7 +148943,7 @@ var PromptGateEngine = class {
       (a) => checkAssertion(a, headResponse.content)
     ) || [];
     let judgeResult;
-    if (promptConfig.rubric && !baseResponse.error && !headResponse.error && baseAssertions.every((a) => a.passed) && headAssertions.every((a) => a.passed)) {
+    if (promptConfig.rubric && !baseResponse.error && !headResponse.error && baseResponse.content && headResponse.content) {
       judgeResult = await runBidirectionalJudge(
         this.provider,
         promptConfig.rubric,
@@ -148982,6 +148987,10 @@ var PromptGateEngine = class {
       temperature: config.temperature,
       maxTokens: config.maxTokens
     });
+    if (response.error) {
+      console.error(`LLM error (${config.model}): ${response.error}`);
+      return response;
+    }
     this.cache.set(hash, response);
     return response;
   }
@@ -149027,10 +149036,17 @@ var BaseProvider = class {
     };
   }
 };
+var MODEL_FALLBACKS = [
+  "gemini-2.0-flash",
+  "gemini-2.5-flash",
+  "gemini-1.5-flash",
+  "gemini-flash-latest"
+];
 var GeminiProvider = class extends BaseProvider {
   name = "gemini";
   apiKey;
   baseUrl;
+  resolvedModel = null;
   constructor(config) {
     super();
     this.apiKey = config.apiKey;
@@ -149038,80 +149054,105 @@ var GeminiProvider = class extends BaseProvider {
   }
   async call(params) {
     const startTime = Date.now();
-    try {
-      const contents = [];
-      if (params.systemPrompt) {
-        contents.push({
-          role: "user",
-          parts: [{ text: params.systemPrompt }]
-        });
-        contents.push({
-          role: "model",
-          parts: [{ text: "Understood." }]
-        });
+    const modelsToTry = this.resolvedModel ? [this.resolvedModel] : [params.model, ...MODEL_FALLBACKS.filter((m) => m !== params.model)];
+    let lastError = null;
+    for (const model of modelsToTry) {
+      try {
+        const result = await this.callModel(model, params, startTime);
+        this.resolvedModel = model;
+        if (model !== params.model) {
+          console.warn(`Gemini model ${params.model} unavailable; using ${model}`);
+        }
+        return result;
+      } catch (error) {
+        lastError = error;
+        const statusMatch = String(error.message).match(/Gemini API error \((\d+)\)/);
+        const status = statusMatch ? Number(statusMatch[1]) : 0;
+        const retryable = status === 404 || status === 400 || status === 429 || status >= 500;
+        if (!retryable || modelsToTry.indexOf(model) === modelsToTry.length - 1) {
+          console.error(`Gemini call failed (${model}): ${error.message}`);
+          return this.handleError(error);
+        }
+        console.warn(`Gemini model ${model} failed (${status || "error"}); trying fallback`);
       }
+    }
+    return this.handleError(lastError || new Error("Gemini request failed"));
+  }
+  async callModel(model, params, startTime) {
+    const contents = [];
+    if (params.systemPrompt) {
       contents.push({
         role: "user",
-        parts: [{ text: params.prompt }]
+        parts: [{ text: params.systemPrompt }]
       });
-      const requestBody = {
-        contents,
-        generationConfig: {}
-      };
-      if (params.temperature !== void 0) {
-        requestBody.generationConfig.temperature = params.temperature;
-      }
-      if (params.maxTokens) {
-        requestBody.generationConfig.maxOutputTokens = params.maxTokens;
-      }
-      const response = await fetch(
-        `${this.baseUrl}/models/${params.model}:generateContent?key=${this.apiKey}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(requestBody)
-        }
-      );
-      const latencyMs = Date.now() - startTime;
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Gemini API error (${response.status}): ${errorText}`
-        );
-      }
-      const data = await response.json();
-      if (data.promptFeedback?.blockReason || !data.candidates || data.candidates.length === 0) {
-        return {
-          content: "",
-          latencyMs,
-          cost: 0,
-          refusal: true
-        };
-      }
-      const candidate = data.candidates[0];
-      const text = candidate.content?.parts?.[0]?.text || "";
-      const inputTokens = this.estimateTokens(params.prompt);
-      const outputTokens = this.estimateTokens(text);
-      const cost = this.estimateCost(params.model, inputTokens, outputTokens);
-      return {
-        content: text,
-        latencyMs,
-        cost
-      };
-    } catch (error) {
-      return this.handleError(error);
+      contents.push({
+        role: "model",
+        parts: [{ text: "Understood." }]
+      });
     }
+    contents.push({
+      role: "user",
+      parts: [{ text: params.prompt }]
+    });
+    const requestBody = {
+      contents,
+      generationConfig: {}
+    };
+    const generationConfig = {};
+    if (params.temperature !== void 0) {
+      generationConfig.temperature = params.temperature;
+    }
+    if (params.maxTokens) {
+      generationConfig.maxOutputTokens = params.maxTokens;
+    }
+    requestBody.generationConfig = generationConfig;
+    const response = await fetch(
+      `${this.baseUrl}/models/${model}:generateContent?key=${this.apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "PromptGate/1.0"
+        },
+        body: JSON.stringify(requestBody)
+      }
+    );
+    const latencyMs = Date.now() - startTime;
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+    }
+    const data = await response.json();
+    if (data.promptFeedback?.blockReason || !data.candidates || data.candidates.length === 0) {
+      return {
+        content: "",
+        latencyMs,
+        cost: 0,
+        refusal: true
+      };
+    }
+    const candidate = data.candidates[0];
+    const text = candidate.content?.parts?.[0]?.text || "";
+    const inputTokens = this.estimateTokens(params.prompt);
+    const outputTokens = this.estimateTokens(text);
+    const cost = this.estimateCost(model, inputTokens, outputTokens);
+    return {
+      content: text,
+      latencyMs,
+      cost
+    };
   }
   estimateCost(model, inputTokens, outputTokens) {
     const rates = {
       "gemini-2.0-flash-exp": { input: 0, output: 0 },
+      "gemini-2.0-flash": { input: 0.1, output: 0.4 },
+      "gemini-2.5-flash": { input: 0.15, output: 0.6 },
       "gemini-1.5-flash": { input: 0.075, output: 0.3 },
       "gemini-1.5-flash-8b": { input: 0.0375, output: 0.15 },
+      "gemini-flash-latest": { input: 0.1, output: 0.4 },
       "gemini-1.5-pro": { input: 1.25, output: 5 }
     };
-    const rate = rates[model] || rates["gemini-1.5-flash"];
+    const rate = rates[model] || rates["gemini-2.0-flash"];
     return (inputTokens * rate.input + outputTokens * rate.output) / 1e6;
   }
 };
@@ -149409,6 +149450,16 @@ function formatPRComment(report) {
 \u26A0\uFE0F **${promptResult.criticalFailures} critical failure(s)**
 `;
     }
+    const errorCases = promptResult.caseResults.filter(
+      (c) => c.baseContextFree.error || c.headContextFree.error
+    );
+    if (errorCases.length > 0 && errorCases.length === promptResult.totalCases) {
+      comment += `
+\u26A0\uFE0F **All ${errorCases.length} test case(s) failed with LLM errors**
+`;
+      comment += `Check action logs for details.
+`;
+    }
     if (promptResult.flakyCount > 0) {
       comment += `
 \u{1F3B2} **${promptResult.flakyCount} flaky case(s)** (non-deterministic outputs)
@@ -149417,24 +149468,26 @@ function formatPRComment(report) {
     const regressedCases = promptResult.caseResults.filter(
       (c) => c.judgeResult?.preferredVersion === "base" || !c.baseContextFree.error && c.headContextFree.error || c.baseAssertions.every((a) => a.passed) && c.headAssertions.some((a) => !a.passed)
     );
-    if (regressedCases.length > 0) {
+    const casesToShow = regressedCases.length > 0 ? regressedCases.slice(0, 3) : promptResult.caseResults.slice(0, 2);
+    if (casesToShow.length > 0) {
+      const heading = regressedCases.length > 0 ? `\u{1F50D} Regressed Cases (${regressedCases.length})` : `\u{1F50D} Sample Cases (${casesToShow.length})`;
       comment += `
 <details>
-<summary>\u{1F50D} Regressed Cases (${regressedCases.length})</summary>
+<summary>${heading}</summary>
 
 `;
-      for (const caseResult of regressedCases.slice(0, 3)) {
+      for (const caseResult of casesToShow) {
         comment += `**${caseResult.caseName || "Unnamed"}**${caseResult.critical ? " \u{1F534} CRITICAL" : ""}
 
 `;
-        comment += `Base: \`${truncate(caseResult.baseOutput, 100)}\`
+        comment += `Base: \`${truncate(caseResult.baseOutput, 180)}\`
 
 `;
-        comment += `Head: \`${truncate(caseResult.headOutput, 100)}\`
+        comment += `Head: \`${truncate(caseResult.headOutput, 180)}\`
 
 `;
         if (caseResult.judgeResult) {
-          comment += `Judge: ${caseResult.judgeResult.reasoning}
+          comment += `Judge (${caseResult.judgeResult.preferredVersion}): ${caseResult.judgeResult.reasoning}
 
 `;
         }

@@ -34,9 +34,9 @@ export function calculateJudgeAgreement(
     judgePreferred: 'base' | 'head' | 'tie';
     isHead: boolean;
   }>
-): number {
+): { agreementPercentage: number; totalCases: number } {
   if (labels.length === 0 || judgeResults.length === 0) {
-    return 0;
+    return { agreementPercentage: 0, totalCases: 0 };
   }
 
   let agreements = 0;
@@ -46,8 +46,7 @@ export function calculateJudgeAgreement(
     const label = labels.find(
       (l) =>
         l.promptName === result.promptName &&
-        l.caseName === result.caseName &&
-        l.output === result.output
+        l.caseName === result.caseName
     );
 
     if (!label) continue;
@@ -65,6 +64,11 @@ export function calculateJudgeAgreement(
     }
   }
 
-  if (comparisons === 0) return 0;
-  return agreements / comparisons;
+  if (comparisons === 0) {
+    return { agreementPercentage: 0, totalCases: 0 };
+  }
+  return {
+    agreementPercentage: (agreements / comparisons) * 100,
+    totalCases: comparisons,
+  };
 }

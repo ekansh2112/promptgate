@@ -53,6 +53,26 @@ export async function saveEvalResults(
     )
     .first<{ id: number }>();
 
+  if (
+    runResult &&
+    (report.calibrationAgreement !== undefined ||
+      report.calibrationSampleSize !== undefined)
+  ) {
+    try {
+      await env.DB.prepare(
+        `UPDATE runs SET calibration_agreement = ?, calibration_sample_size = ? WHERE id = ?`
+      )
+        .bind(
+          report.calibrationAgreement ?? null,
+          report.calibrationSampleSize ?? null,
+          runResult.id
+        )
+        .run();
+    } catch {
+      // Columns exist only after migration 0002; upload still succeeds without them.
+    }
+  }
+
   for (const promptResult of report.prompts) {
     const promptResultRow = await env.DB.prepare(
       `INSERT INTO prompt_results (

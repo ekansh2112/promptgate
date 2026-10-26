@@ -22,18 +22,13 @@ export function RepoList() {
 
   const fetchRepos = async () => {
     const token = localStorage.getItem('promptgate_session');
-    if (!token) {
-      setError('Please login to view repositories');
-      setLoading(false);
-      return;
+    const headers: HeadersInit = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/repos`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(`${API_URL}/api/repos`, { headers });
 
       if (!response.ok) {
         throw new Error('Failed to fetch repositories');
@@ -61,7 +56,9 @@ export function RepoList() {
       <div className="card">
         <h2>No Repositories Yet</h2>
         <p style={{ marginTop: '12px', color: '#6e6e73' }}>
-          Run PromptGate on your repositories to see them here.
+          Public repositories appear here after a PromptGate run uploads results.
+          v1 OAuth is <code>read:user</code> only (public repos). Private-repo
+          dashboard access is not included in v1 — use BYOK in CI instead.
         </p>
       </div>
     );

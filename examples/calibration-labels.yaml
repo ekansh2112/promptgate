@@ -1,24 +1,24 @@
 - promptName: "Code Review Summary"
-  caseName: "Add user authentication"
-  output: "This PR adds user authentication"
-  label: "good"
-  
-- promptName: "Code Review Summary"
-  caseName: "Fix null pointer bug"
-  output: "Fixes a critical null pointer exception"
-  label: "good"
-  
-- promptName: "Code Review Summary"
-  caseName: "Refactor database layer"
-  output: "Refactors database queries for better performance"
+  caseName: "Simple feature addition"
+  output: ""
   label: "good"
 
-- promptName: "Bug Report Classification"
-  caseName: "Login fails intermittently"
-  output: "high"
+- promptName: "Code Review Summary"
+  caseName: "Breaking change"
+  output: ""
   label: "good"
-  
-- promptName: "Bug Report Classification"
-  caseName: "App crashes on launch"
-  output: "critical"
+
+- promptName: "Code Review Summary"
+  caseName: "Bug fix"
+  output: ""
+  label: "good"
+
+- promptName: "Code Review Summary"
+  caseName: "Refactoring"
+  output: ""
+  label: "good"
+
+- promptName: "Code Review Summary"
+  caseName: "Documentation update"
+  output: ""
   label: "good"

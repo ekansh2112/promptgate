@@ -6,14 +6,9 @@ const app = new Hono<{ Bindings: Env }>();
 
 app.get('/api/repos', async (c) => {
   const sessionToken = c.req.header('Authorization')?.slice(7);
-  if (!sessionToken) {
-    return c.json({ error: 'Unauthorized' }, 401);
-  }
-
-  const session = await verifySession(c.env.SESSION_SECRET, sessionToken);
-  if (!session) {
-    return c.json({ error: 'Invalid session' }, 401);
-  }
+  const session = sessionToken
+    ? await verifySession(c.env.SESSION_SECRET, sessionToken)
+    : null;
 
   const repos = await c.env.DB.prepare(
     `SELECT DISTINCT r.id, r.full_name, r.is_private, 
@@ -32,14 +27,16 @@ app.get('/api/repos', async (c) => {
 
   const accessible = [];
   for (const repo of repos.results) {
-    const hasAccess = await checkRepoAccess(
-      session.githubId,
-      repo.full_name,
-      repo.is_private === 1
-    );
-    if (hasAccess) {
-      accessible.push(repo);
+    if (repo.is_private === 1) {
+      if (!session) continue;
+      const hasAccess = await checkRepoAccess(
+        session.githubId,
+        repo.full_name,
+        true
+      );
+      if (!hasAccess) continue;
     }
+    accessible.push(repo);
   }
 
   return c.json({ repositories: accessible });
@@ -166,7 +163,12 @@ app.get('/api/repos/:owner/:name/runs/:runId/details', async (c) => {
     })
   );
 
-  return c.json({ run, prompts: promptsWithCases });
+  return c.json({
+    run,
+    prompts: promptsWithCases,
+    calibrationAgreement: (run as any).calibration_agreement ?? null,
+    calibrationSampleSize: (run as any).calibration_sample_size ?? null,
+  });
 });
 
 app.get('/api/repos/:owner/:name/prompts/:promptName/trend', async (c) => {
@@ -207,17 +209,25 @@ app.get('/api/repos/:owner/:name/prompts/:promptName/trend', async (c) => {
   }
 
   const trend = await c.env.DB.prepare(
-    `SELECT pr.*, r.timestamp, r.pr_number, r.base_ref, r.head_ref
+    `SELECT pr.run_id, pr.head_pass_rate, pr.base_pass_rate, r.timestamp, r.pr_number
      FROM prompt_results pr
      JOIN runs r ON pr.run_id = r.id
      WHERE r.repository_id = ? AND pr.prompt_name = ?
-     ORDER BY r.created_at DESC
+     ORDER BY r.created_at ASC
      LIMIT 50`
   )
     .bind(repo.id, promptName)
     .all();
 
-  return c.json({ trend: trend.results });
+  const dataPoints = (trend.results || []).map((row: any) => ({
+    run_id: row.run_id,
+    timestamp: row.timestamp,
+    head_pass_rate: row.head_pass_rate,
+    base_pass_rate: row.base_pass_rate,
+    pr_number: row.pr_number,
+  }));
+
+  return c.json({ dataPoints, trend: dataPoints });
 });
 
 export default app;

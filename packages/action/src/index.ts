@@ -203,6 +203,15 @@ function formatPRComment(report: EvalReport): string {
     if (promptResult.criticalFailures > 0) {
       comment += `\n⚠️ **${promptResult.criticalFailures} critical failure(s)**\n`;
     }
+    
+    // Show error details if all cases failed with errors
+    const errorCases = promptResult.caseResults.filter(
+      (c) => c.baseContextFree.error || c.headContextFree.error
+    );
+    if (errorCases.length > 0 && errorCases.length === promptResult.totalCases) {
+      comment += `\n⚠️ **All ${errorCases.length} test case(s) failed with LLM errors**\n`;
+      comment += `Check action logs for details.\n`;
+    }
 
     if (promptResult.flakyCount > 0) {
       comment += `\n🎲 **${promptResult.flakyCount} flaky case(s)** (non-deterministic outputs)\n`;
@@ -215,14 +224,23 @@ function formatPRComment(report: EvalReport): string {
         (c.baseAssertions.every((a) => a.passed) && c.headAssertions.some((a) => !a.passed))
     );
 
-    if (regressedCases.length > 0) {
-      comment += `\n<details>\n<summary>🔍 Regressed Cases (${regressedCases.length})</summary>\n\n`;
-      for (const caseResult of regressedCases.slice(0, 3)) {
+    const casesToShow =
+      regressedCases.length > 0
+        ? regressedCases.slice(0, 3)
+        : promptResult.caseResults.slice(0, 2);
+
+    if (casesToShow.length > 0) {
+      const heading =
+        regressedCases.length > 0
+          ? `🔍 Regressed Cases (${regressedCases.length})`
+          : `🔍 Sample Cases (${casesToShow.length})`;
+      comment += `\n<details>\n<summary>${heading}</summary>\n\n`;
+      for (const caseResult of casesToShow) {
         comment += `**${caseResult.caseName || 'Unnamed'}**${caseResult.critical ? ' 🔴 CRITICAL' : ''}\n\n`;
-        comment += `Base: \`${truncate(caseResult.baseOutput, 100)}\`\n\n`;
-        comment += `Head: \`${truncate(caseResult.headOutput, 100)}\`\n\n`;
+        comment += `Base: \`${truncate(caseResult.baseOutput, 180)}\`\n\n`;
+        comment += `Head: \`${truncate(caseResult.headOutput, 180)}\`\n\n`;
         if (caseResult.judgeResult) {
-          comment += `Judge: ${caseResult.judgeResult.reasoning}\n\n`;
+          comment += `Judge (${caseResult.judgeResult.preferredVersion}): ${caseResult.judgeResult.reasoning}\n\n`;
         }
       }
       comment += `</details>\n\n`;

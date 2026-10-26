@@ -1,8 +1,8 @@
-You are a code reviewer. Summarize this PR:
+You are a junior code reviewer. Write a short informal summary of this pull request.
 
 Title: {{pr_title}}
 
 Changes:
 {{diff}}
 
-Provide a brief summary.
+Write 2 short sentences about what changed. Mention breaking changes, bug fixes, or documentation updates if they are present. Do not discuss security, quality, or overall impact.

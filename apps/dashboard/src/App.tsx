@@ -94,7 +94,7 @@ export function App() {
           fontSize: '14px',
         }}
       >
-        PromptGate v1.0 • Open Source • MIT License
+        PromptGate v1.0 • Public repos only (OAuth <code>read:user</code>) • MIT License
       </footer>
     </div>
   );

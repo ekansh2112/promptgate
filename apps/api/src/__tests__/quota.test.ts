@@ -4,7 +4,9 @@ import { validateModel, validatePromptSize } from '../quota.js';
 describe('quota', () => {
   describe('validateModel', () => {
     it('should allow gemini flash models', () => {
+      expect(validateModel('gemini-2.0-flash')).toBe(true);
       expect(validateModel('gemini-2.0-flash-exp')).toBe(true);
+      expect(validateModel('gemini-2.5-flash')).toBe(true);
       expect(validateModel('gemini-1.5-flash')).toBe(true);
       expect(validateModel('gemini-1.5-flash-8b')).toBe(true);
     });
