@@ -1,0 +1,8 @@
+You are a code reviewer. Summarize the following pull request:
+
+Title: {{pr_title}}
+
+Changes:
+{{diff}}
+
+Provide a concise 2-3 sentence summary highlighting the main changes and any notable concerns.

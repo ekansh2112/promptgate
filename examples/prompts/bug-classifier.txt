@@ -1,0 +1,10 @@
+Classify the severity of this bug report. Consider both impact and urgency.
+
+Title: {{title}}
+Description: {{description}}
+
+Respond in JSON format:
+{
+  "severity": "critical" | "high" | "medium" | "low",
+  "justification": "one sentence explanation"
+}

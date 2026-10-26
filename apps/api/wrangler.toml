@@ -1,0 +1,12 @@
+name = "promptgate-api"
+main = "src/index.ts"
+compatibility_date = "2024-10-21"
+workers_dev = true
+
+[vars]
+GITHUB_OAUTH_CLIENT_ID = "Ov23liSC7ljd5DFoCFDp"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "promptgate"
+database_id = "a4fd439a-8bcb-4494-8c84-a39a65a4a1c3"
