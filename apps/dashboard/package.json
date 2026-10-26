@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "lint": "echo 'Linting temporarily disabled'",
     "clean": "rm -rf dist node_modules .turbo"
   },
   "dependencies": {
