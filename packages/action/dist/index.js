@@ -148733,7 +148733,9 @@ var PromptGateEngine = class {
     const results = [];
     for (const promptConfig of promptsToTest) {
       const result = await this.evalPrompt(promptConfig);
-      results.push(result);
+      if (result !== null) {
+        results.push(result);
+      }
     }
     const totalCost = results.reduce(
       (sum, r) => sum + r.totalCostBase + r.totalCostHead,
@@ -148771,6 +148773,9 @@ var PromptGateEngine = class {
       promptConfig.path,
       this.options.headRef
     );
+    if (!basePromptText || !headPromptText) {
+      return null;
+    }
     const caseResults = [];
     for (const testCase of testSet) {
       const caseResult = await this.evalCase(
@@ -148920,7 +148925,7 @@ var PromptGateEngine = class {
       });
       return output;
     } catch (error) {
-      throw new Error(`Failed to load prompt from ${ref}:${promptPath}: ${error.message}`);
+      return null;
     }
   }
   async loadTestSet(filePath) {

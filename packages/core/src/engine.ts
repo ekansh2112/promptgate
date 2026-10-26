@@ -61,7 +61,7 @@ export class PromptGateEngine {
 
     for (const promptConfig of promptsToTest) {
       const result = await this.evalPrompt(promptConfig);
-      if (result) {
+      if (result !== null) {
         results.push(result);
       }
     }
