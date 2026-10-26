@@ -30,6 +30,21 @@ export function RepoList() {
     try {
       const response = await fetch(`${API_URL}/api/repos`, { headers });
 
+      if (response.status === 401) {
+        // Live API before this PR's deploy still requires login for /api/repos.
+        // Public run routes work without auth — surface the dogfood repo.
+        setRepos([
+          {
+            id: 0,
+            full_name: 'ekansh2112/promptgate',
+            is_private: 0,
+            run_count: 0,
+            last_run: null,
+          },
+        ]);
+        return;
+      }
+
       if (!response.ok) {
         throw new Error('Failed to fetch repositories');
       }

@@ -98,7 +98,12 @@ export function RunDetail() {
         );
         if (trendResponse.ok) {
           const trend = await trendResponse.json();
-          trendData[prompt.prompt_name] = trend.dataPoints || [];
+          const raw = trend.dataPoints || trend.trend || [];
+          trendData[prompt.prompt_name] = raw.map((p: TrendPoint) => ({
+            run_id: p.run_id,
+            timestamp: p.timestamp,
+            head_pass_rate: p.head_pass_rate,
+          }));
         }
       }
       setTrends(trendData);

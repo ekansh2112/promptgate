@@ -26,45 +26,65 @@ PromptGate solves this by automating prompt evaluation in CI with:
 
 ---
 
-## 📊 Sample PR Comment
+## 📊 Dogfood PR comment (from [PR #2](https://github.com/ekansh2112/promptgate/pull/2))
 
-<!-- Real comment will be inserted here after dogfooding PR #2 -->
+Posted by the GitHub Action: https://github.com/ekansh2112/promptgate/pull/2#issuecomment-6427269098
 
-Here's what PromptGate posts on your pull requests:
+This PR deliberately shortened `examples/prompts/code-review.txt`. Dogfood uploaded every run to the live API (`✓ Results uploaded`). The Gemini BYOK secret on this repo is **free-tier** (20 generate-content requests/day); after that budget was spent, later comments report infrastructure errors instead of a scored regression. Provider outages no longer fail the CI check.
 
 ```markdown
-## ✅ PromptGate Evaluation PASSED
+<!-- promptgate-report -->
 
-**Base:** `a3f2c1b` | **Head:** `d7e9f8a`
+## ❌ PromptGate Evaluation FAILED
+
+**Base:** `3fb2b08` | **Head:** `583eaa9`
 
 ### Code Review Summary
 
 | Metric | Base | Head | Delta |
 |--------|------|------|-------|
-| Pass Rate | 100.0% | 100.0% | ➡️ +0.0% |
-| Avg Latency | 842ms | 798ms | -44ms |
-| Cost | $0.0012 | $0.0013 | $0.0001 |
+| Pass Rate | 0.0% | 0.0% | ➡️ +0.0% |
+| Avg Latency | 0ms | 0ms | 0ms |
+| Cost | $0.0000 | $0.0000 | $0.0000 |
 
-### Bug Report Classification
+⚠️ **1 critical failure(s)**
 
-| Metric | Base | Head | Delta |
-|--------|------|------|-------|
-| Pass Rate | 80.0% | 100.0% | 📈 +20.0% |
-| Avg Latency | 623ms | 611ms | -12ms |
-| Cost | $0.0015 | $0.0016 | $0.0001 |
+⚠️ **All 2 test case(s) failed with LLM errors**
+Check action logs for details.
 
-🎲 **1 flaky case(s)** (non-deterministic outputs)
+<details>
+<summary>🔍 Sample Cases (2)</summary>
 
-**Total Cost:** $0.0056
-**Judge Calibration:** 85.0% agreement (5 labeled cases)
+**Simple feature addition**
 
-_Evaluated at 10/26/2026, 7:30:15 PM_
+Base: ``
+
+Head: ``
+
+**Breaking change** 🔴 CRITICAL
+
+Base: ``
+
+Head: ``
+
+</details>
+
+
+**Total Cost:** $0.0000
+
+_Evaluated at 10/26/2026, 10:33:17 PM_
 ```
 
-When a regression is detected, the check fails and the comment includes:
-- Side-by-side output comparison for regressed cases
-- Judge reasoning for why base was preferred
-- Critical failure indicators
+While quota remained, run [40403032334](https://github.com/ekansh2112/promptgate/actions/runs/40403032334) produced real model tokens (stored on the dashboard as [run 3](https://promptgate-dashboard.pages.dev/repos/ekansh2112/promptgate/runs/3)):
+
+| Case | Base output | Head output |
+|------|-------------|-------------|
+| Simple feature addition | *(error)* | `` `UserProfile` React `` |
+| Breaking change | `This pull request updates the` | *(error)* |
+
+Avg latency on that run: **35360ms** base / **53202ms** head. Judge calibration % is omitted when the pairwise judge never ran (no successful paired outputs).
+
+When a scored regression is detected, the comment also includes judge reasoning and critical-failure markers.
 
 ## 🌐 Live Services
 
