@@ -1,0 +1,9 @@
+- promptName: "Code Review Summary"
+  caseName: "Simple feature addition"
+  output: ""
+  label: "good"
+
+- promptName: "Code Review Summary"
+  caseName: "Breaking change"
+  output: ""
+  label: "good"

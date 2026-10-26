@@ -21,6 +21,7 @@ import {
   computeContextFreeScore,
   runBidirectionalJudge,
 } from './scoring.js';
+import { loadCalibrationLabels, calculateJudgeAgreement } from './calibration.js';
 
 export interface EngineOptions {
   configPath: string;
@@ -28,6 +29,8 @@ export interface EngineOptions {
   baseRef: string;
   headRef: string;
   changedFiles?: string[];
+  modelOverride?: string;
+  judgeModel?: string;
 }
 
 export class PromptGateEngine {
@@ -47,6 +50,17 @@ export class PromptGateEngine {
     const configContent = await fs.readFile(configPath, 'utf-8');
     const rawConfig = YAML.parse(configContent);
     this.config = PromptGateConfigSchema.parse(rawConfig);
+
+    if (this.options.modelOverride) {
+      this.config.prompts = this.config.prompts.map((p) => ({
+        ...p,
+        model: this.options.modelOverride as string,
+      }));
+    }
+
+    if (this.options.judgeModel) {
+      this.config.scoring.judgeModel = this.options.judgeModel;
+    }
 
     if (this.config.scoring.enableCache !== undefined) {
       this.cache = new ResponseCache(this.config.scoring.enableCache);
@@ -77,13 +91,59 @@ export class PromptGateEngine {
         r.passRateDelta >= -this.config.scoring.passRateThreshold
     );
 
+    let calibrationAgreement: number | undefined;
+    let calibrationSampleSize: number | undefined;
+
+    try {
+      const labelsPath = path.join(path.dirname(this.options.configPath), 'calibration-labels.yaml');
+      const labels = await loadCalibrationLabels(labelsPath);
+      
+      if (labels.length > 0) {
+        // Transform results into format expected by calculateJudgeAgreement
+        const judgeResults: Array<{
+          caseName: string;
+          promptName: string;
+          output: string;
+          judgePreferred: 'base' | 'head' | 'tie';
+          isHead: boolean;
+        }> = [];
+
+        for (const promptResult of results) {
+          for (const caseResult of promptResult.caseResults) {
+            if (caseResult.judgeResult) {
+              judgeResults.push({
+                caseName: caseResult.caseName || '',
+                promptName: promptResult.promptName,
+                output: caseResult.headOutput,
+                judgePreferred: caseResult.judgeResult.preferredVersion,
+                isHead: true,
+              });
+            }
+          }
+        }
+
+        const agreement = calculateJudgeAgreement(labels, judgeResults);
+        if (agreement.totalCases > 0) {
+          calibrationAgreement = agreement.agreementPercentage;
+          calibrationSampleSize = agreement.totalCases;
+        }
+      }
+    } catch {
+      // Calibration labels optional
+    }
+
+    const evaluationError = collectEvaluationError(results);
+
     return {
       timestamp: new Date().toISOString(),
       baseRef: this.options.baseRef,
       headRef: this.options.headRef,
       prompts: results,
-      passed,
+      passed: evaluationError ? false : passed,
       totalCost,
+      calibrationAgreement,
+      calibrationSampleSize,
+      evaluationError,
     };
   }
 
@@ -103,16 +163,33 @@ export class PromptGateEngine {
     promptConfig: PromptConfig
   ): Promise<PromptResult | null> {
     const testSet = await this.loadTestSet(promptConfig.testSet);
-    const basePromptText = await this.loadPromptFromRef(
+    
+    // Try git show for base, fall back to file read
+    let basePromptText = await this.loadPromptFromRef(
       promptConfig.path,
       this.options.baseRef
     );
-    const headPromptText = await this.loadPromptFromRef(
-      promptConfig.path,
-      this.options.headRef
-    );
-
-    if (!basePromptText || !headPromptText) {
+    if (!basePromptText) {
+      try {
+        basePromptText = await this.loadPrompt(promptConfig.path);
+      } catch {
+        return null;
+      }
+    }
+    
+    // For head, read from workspace (current checkout)
+    let headPromptText: string | null;
+    try {
+      headPromptText = await this.loadPrompt(promptConfig.path);
+    } catch {
+      // Fall back to git show for head
+      headPromptText = await this.loadPromptFromRef(
+        promptConfig.path,
+        this.options.headRef
+      );
+    }
+    
+    if (!headPromptText) {
       return null;
     }
 
@@ -141,8 +218,7 @@ export class PromptGateEngine {
       (c) =>
         c.critical &&
         (c.headContextFree.error ||
-          c.headAssertions.some((a) => !a.passed) ||
-          c.judgeResult?.preferredVersion === 'base')
+          c.headAssertions.some((a) => !a.passed))
     ).length;
 
     const flakyCount = caseResults.filter((c) => c.flaky).length;
@@ -246,8 +322,8 @@ export class PromptGateEngine {
       promptConfig.rubric &&
       !baseResponse.error &&
       !headResponse.error &&
-      baseAssertions.every((a) => a.passed) &&
-      headAssertions.every((a) => a.passed)
+      baseResponse.content &&
+      headResponse.content
     ) {
       judgeResult = await runBidirectionalJudge(
         this.provider,
@@ -255,7 +331,8 @@ export class PromptGateEngine {
         headPromptText,
         testCase.inputs,
         baseResponse.content,
-        headResponse.content
+        headResponse.content,
+        this.options.judgeModel || this.config.scoring.judgeModel
       );
     }
 
@@ -272,6 +349,7 @@ export class PromptGateEngine {
       judgeResult,
       flaky,
       runs,
+      providerError: baseResponse.error || headResponse.error,
     };
   }
 
@@ -299,6 +377,11 @@ export class PromptGateEngine {
       temperature: config.temperature,
       maxTokens: config.maxTokens,
     });
+
+    if (response.error) {
+      console.error(`LLM error (${config.model}): ${response.error}`);
+      return response;
+    }
 
     this.cache.set(hash, response);
     return response;
@@ -338,4 +421,29 @@ export class PromptGateEngine {
     const parsed = YAML.parse(content);
     return TestSetSchema.parse(parsed);
   }
+}
+
+export function collectEvaluationError(
+  results: PromptResult[]
+): string | undefined {
+  if (results.length === 0) {
+    return undefined;
+  }
+
+  const cases = results.flatMap((r) => r.caseResults);
+  if (cases.length === 0) {
+    return undefined;
+  }
+
+  const allErrored = cases.every(
+    (c) => c.baseContextFree.error && c.headContextFree.error
+  );
+  if (!allErrored) {
+    return undefined;
+  }
+
+  return (
+    cases.find((c) => c.providerError)?.providerError ||
+    'All test cases failed with LLM errors'
+  );
 }

@@ -51,6 +51,7 @@ export interface JudgeResult {
   preferredVersion: 'base' | 'head' | 'tie';
   reasoning: string;
   confidence: number;
+  error?: string;
 }
 
 export interface CaseResult {
@@ -66,6 +67,7 @@ export interface CaseResult {
   judgeResult?: JudgeResult;
   flaky: boolean;
   runs: number;
+  providerError?: string;
 }
 
 export interface PromptResult {
@@ -95,6 +97,9 @@ export interface EvalReport {
   prompts: PromptResult[];
   passed: boolean;
   totalCost: number;
+  calibrationAgreement?: number;
+  calibrationSampleSize?: number;
+  evaluationError?: string;
 }
 
 export interface CacheEntry {

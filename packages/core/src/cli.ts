@@ -6,6 +6,7 @@ import YAML from 'yaml';
 import chalk from 'chalk';
 import ora from 'ora';
 import { GeminiProvider } from './providers/gemini.js';
+import { DEFAULT_TARGET_MODEL } from './models.js';
 
 const program = new Command();
 
@@ -19,7 +20,7 @@ program
   .description('Initialize a prompt with test cases and rubric')
   .argument('<prompt-file>', 'Path to the prompt file')
   .option('-o, --output <dir>', 'Output directory', '.')
-  .option('-m, --model <model>', 'Model to use', 'gemini-2.0-flash-exp')
+  .option('-m, --model <model>', 'Model to use', DEFAULT_TARGET_MODEL)
   .action(async (promptFile, options) => {
     const spinner = ora('Generating test cases and rubric...').start();
 

@@ -191,7 +191,7 @@ var require_file_command = __commonJS({
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.prepareKeyValueMessage = exports.issueFileCommand = void 0;
     var crypto2 = __importStar2(__require("crypto"));
-    var fs3 = __importStar2(__require("fs"));
+    var fs4 = __importStar2(__require("fs"));
     var os = __importStar2(__require("os"));
     var utils_1 = require_utils();
     function issueFileCommand(command, message) {
@@ -199,10 +199,10 @@ var require_file_command = __commonJS({
       if (!filePath) {
         throw new Error(`Unable to find environment variable for file command ${command}`);
       }
-      if (!fs3.existsSync(filePath)) {
+      if (!fs4.existsSync(filePath)) {
         throw new Error(`Missing file at path: ${filePath}`);
       }
-      fs3.appendFileSync(filePath, `${(0, utils_1.toCommandValue)(message)}${os.EOL}`, {
+      fs4.appendFileSync(filePath, `${(0, utils_1.toCommandValue)(message)}${os.EOL}`, {
         encoding: "utf8"
       });
     }
@@ -18519,12 +18519,12 @@ var require_io_util = __commonJS({
     var _a5;
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.getCmdPath = exports.tryGetExecutablePath = exports.isRooted = exports.isDirectory = exports.exists = exports.READONLY = exports.UV_FS_O_EXLOCK = exports.IS_WINDOWS = exports.unlink = exports.symlink = exports.stat = exports.rmdir = exports.rm = exports.rename = exports.readlink = exports.readdir = exports.open = exports.mkdir = exports.lstat = exports.copyFile = exports.chmod = void 0;
-    var fs3 = __importStar2(__require("fs"));
+    var fs4 = __importStar2(__require("fs"));
     var path3 = __importStar2(__require("path"));
-    _a5 = fs3.promises, exports.chmod = _a5.chmod, exports.copyFile = _a5.copyFile, exports.lstat = _a5.lstat, exports.mkdir = _a5.mkdir, exports.open = _a5.open, exports.readdir = _a5.readdir, exports.readlink = _a5.readlink, exports.rename = _a5.rename, exports.rm = _a5.rm, exports.rmdir = _a5.rmdir, exports.stat = _a5.stat, exports.symlink = _a5.symlink, exports.unlink = _a5.unlink;
+    _a5 = fs4.promises, exports.chmod = _a5.chmod, exports.copyFile = _a5.copyFile, exports.lstat = _a5.lstat, exports.mkdir = _a5.mkdir, exports.open = _a5.open, exports.readdir = _a5.readdir, exports.readlink = _a5.readlink, exports.rename = _a5.rename, exports.rm = _a5.rm, exports.rmdir = _a5.rmdir, exports.stat = _a5.stat, exports.symlink = _a5.symlink, exports.unlink = _a5.unlink;
     exports.IS_WINDOWS = process.platform === "win32";
     exports.UV_FS_O_EXLOCK = 268435456;
-    exports.READONLY = fs3.constants.O_RDONLY;
+    exports.READONLY = fs4.constants.O_RDONLY;
     function exists(fsPath) {
       return __awaiter2(this, void 0, void 0, function* () {
         try {
@@ -30829,15 +30829,15 @@ var require_upload_zip_specification = __commonJS({
     };
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.getUploadZipSpecification = exports.validateRootDirectory = void 0;
-    var fs3 = __importStar2(__require("fs"));
+    var fs4 = __importStar2(__require("fs"));
     var core_1 = require_core();
     var path_1 = __require("path");
     var path_and_artifact_name_validation_1 = require_path_and_artifact_name_validation();
     function validateRootDirectory(rootDirectory) {
-      if (!fs3.existsSync(rootDirectory)) {
+      if (!fs4.existsSync(rootDirectory)) {
         throw new Error(`The provided rootDirectory ${rootDirectory} does not exist`);
       }
-      if (!fs3.statSync(rootDirectory).isDirectory()) {
+      if (!fs4.statSync(rootDirectory).isDirectory()) {
         throw new Error(`The provided rootDirectory ${rootDirectory} is not a valid directory`);
       }
       (0, core_1.info)(`Root directory input is valid!`);
@@ -30848,7 +30848,7 @@ var require_upload_zip_specification = __commonJS({
       rootDirectory = (0, path_1.normalize)(rootDirectory);
       rootDirectory = (0, path_1.resolve)(rootDirectory);
       for (let file of filesToZip) {
-        const stats = fs3.lstatSync(file, { throwIfNoEntry: false });
+        const stats = fs4.lstatSync(file, { throwIfNoEntry: false });
         if (!stats) {
           throw new Error(`File ${file} does not exist`);
         }
@@ -96471,13 +96471,13 @@ var require_minimatch = __commonJS({
 var require_readdir_glob = __commonJS({
   "../../node_modules/.pnpm/readdir-glob@1.1.3/node_modules/readdir-glob/index.js"(exports, module) {
     module.exports = readdirGlob;
-    var fs3 = __require("fs");
+    var fs4 = __require("fs");
     var { EventEmitter } = __require("events");
     var { Minimatch } = require_minimatch();
     var { resolve } = __require("path");
     function readdir(dir, strict) {
       return new Promise((resolve2, reject) => {
-        fs3.readdir(dir, { withFileTypes: true }, (err, files) => {
+        fs4.readdir(dir, { withFileTypes: true }, (err, files) => {
           if (err) {
             switch (err.code) {
               case "ENOTDIR":
@@ -96510,7 +96510,7 @@ var require_readdir_glob = __commonJS({
     }
     function stat(file, followSymlinks) {
       return new Promise((resolve2, reject) => {
-        const statFunc = followSymlinks ? fs3.stat : fs3.lstat;
+        const statFunc = followSymlinks ? fs4.stat : fs4.lstat;
         statFunc(file, (err, stats) => {
           if (err) {
             switch (err.code) {
@@ -98575,54 +98575,54 @@ var require_polyfills = __commonJS({
     }
     var chdir;
     module.exports = patch;
-    function patch(fs3) {
+    function patch(fs4) {
       if (constants.hasOwnProperty("O_SYMLINK") && process.version.match(/^v0\.6\.[0-2]|^v0\.5\./)) {
-        patchLchmod(fs3);
+        patchLchmod(fs4);
       }
-      if (!fs3.lutimes) {
-        patchLutimes(fs3);
+      if (!fs4.lutimes) {
+        patchLutimes(fs4);
       }
-      fs3.chown = chownFix(fs3.chown);
-      fs3.fchown = chownFix(fs3.fchown);
-      fs3.lchown = chownFix(fs3.lchown);
-      fs3.chmod = chmodFix(fs3.chmod);
-      fs3.fchmod = chmodFix(fs3.fchmod);
-      fs3.lchmod = chmodFix(fs3.lchmod);
-      fs3.chownSync = chownFixSync(fs3.chownSync);
-      fs3.fchownSync = chownFixSync(fs3.fchownSync);
-      fs3.lchownSync = chownFixSync(fs3.lchownSync);
-      fs3.chmodSync = chmodFixSync(fs3.chmodSync);
-      fs3.fchmodSync = chmodFixSync(fs3.fchmodSync);
-      fs3.lchmodSync = chmodFixSync(fs3.lchmodSync);
-      fs3.stat = statFix(fs3.stat);
-      fs3.fstat = statFix(fs3.fstat);
-      fs3.lstat = statFix(fs3.lstat);
-      fs3.statSync = statFixSync(fs3.statSync);
-      fs3.fstatSync = statFixSync(fs3.fstatSync);
-      fs3.lstatSync = statFixSync(fs3.lstatSync);
-      if (fs3.chmod && !fs3.lchmod) {
-        fs3.lchmod = function(path3, mode, cb) {
+      fs4.chown = chownFix(fs4.chown);
+      fs4.fchown = chownFix(fs4.fchown);
+      fs4.lchown = chownFix(fs4.lchown);
+      fs4.chmod = chmodFix(fs4.chmod);
+      fs4.fchmod = chmodFix(fs4.fchmod);
+      fs4.lchmod = chmodFix(fs4.lchmod);
+      fs4.chownSync = chownFixSync(fs4.chownSync);
+      fs4.fchownSync = chownFixSync(fs4.fchownSync);
+      fs4.lchownSync = chownFixSync(fs4.lchownSync);
+      fs4.chmodSync = chmodFixSync(fs4.chmodSync);
+      fs4.fchmodSync = chmodFixSync(fs4.fchmodSync);
+      fs4.lchmodSync = chmodFixSync(fs4.lchmodSync);
+      fs4.stat = statFix(fs4.stat);
+      fs4.fstat = statFix(fs4.fstat);
+      fs4.lstat = statFix(fs4.lstat);
+      fs4.statSync = statFixSync(fs4.statSync);
+      fs4.fstatSync = statFixSync(fs4.fstatSync);
+      fs4.lstatSync = statFixSync(fs4.lstatSync);
+      if (fs4.chmod && !fs4.lchmod) {
+        fs4.lchmod = function(path3, mode, cb) {
           if (cb) process.nextTick(cb);
         };
-        fs3.lchmodSync = function() {
+        fs4.lchmodSync = function() {
         };
       }
-      if (fs3.chown && !fs3.lchown) {
-        fs3.lchown = function(path3, uid, gid, cb) {
+      if (fs4.chown && !fs4.lchown) {
+        fs4.lchown = function(path3, uid, gid, cb) {
           if (cb) process.nextTick(cb);
         };
-        fs3.lchownSync = function() {
+        fs4.lchownSync = function() {
         };
       }
       if (platform === "win32") {
-        fs3.rename = typeof fs3.rename !== "function" ? fs3.rename : function(fs$rename) {
+        fs4.rename = typeof fs4.rename !== "function" ? fs4.rename : function(fs$rename) {
           function rename(from, to, cb) {
             var start = Date.now();
             var backoff = 0;
             fs$rename(from, to, function CB(er) {
               if (er && (er.code === "EACCES" || er.code === "EPERM" || er.code === "EBUSY") && Date.now() - start < 6e4) {
                 setTimeout(function() {
-                  fs3.stat(to, function(stater, st) {
+                  fs4.stat(to, function(stater, st) {
                     if (stater && stater.code === "ENOENT")
                       fs$rename(from, to, CB);
                     else
@@ -98638,9 +98638,9 @@ var require_polyfills = __commonJS({
           }
           if (Object.setPrototypeOf) Object.setPrototypeOf(rename, fs$rename);
           return rename;
-        }(fs3.rename);
+        }(fs4.rename);
       }
-      fs3.read = typeof fs3.read !== "function" ? fs3.read : function(fs$read) {
+      fs4.read = typeof fs4.read !== "function" ? fs4.read : function(fs$read) {
         function read(fd, buffer, offset, length, position, callback_) {
           var callback;
           if (callback_ && typeof callback_ === "function") {
@@ -98648,22 +98648,22 @@ var require_polyfills = __commonJS({
             callback = function(er, _2, __) {
               if (er && er.code === "EAGAIN" && eagCounter < 10) {
                 eagCounter++;
-                return fs$read.call(fs3, fd, buffer, offset, length, position, callback);
+                return fs$read.call(fs4, fd, buffer, offset, length, position, callback);
               }
               callback_.apply(this, arguments);
             };
           }
-          return fs$read.call(fs3, fd, buffer, offset, length, position, callback);
+          return fs$read.call(fs4, fd, buffer, offset, length, position, callback);
         }
         if (Object.setPrototypeOf) Object.setPrototypeOf(read, fs$read);
         return read;
-      }(fs3.read);
-      fs3.readSync = typeof fs3.readSync !== "function" ? fs3.readSync : /* @__PURE__ */ function(fs$readSync) {
+      }(fs4.read);
+      fs4.readSync = typeof fs4.readSync !== "function" ? fs4.readSync : /* @__PURE__ */ function(fs$readSync) {
         return function(fd, buffer, offset, length, position) {
           var eagCounter = 0;
           while (true) {
             try {
-              return fs$readSync.call(fs3, fd, buffer, offset, length, position);
+              return fs$readSync.call(fs4, fd, buffer, offset, length, position);
             } catch (er) {
               if (er.code === "EAGAIN" && eagCounter < 10) {
                 eagCounter++;
@@ -98673,10 +98673,10 @@ var require_polyfills = __commonJS({
             }
           }
         };
-      }(fs3.readSync);
-      function patchLchmod(fs4) {
-        fs4.lchmod = function(path3, mode, callback) {
-          fs4.open(
+      }(fs4.readSync);
+      function patchLchmod(fs5) {
+        fs5.lchmod = function(path3, mode, callback) {
+          fs5.open(
             path3,
             constants.O_WRONLY | constants.O_SYMLINK,
             mode,
@@ -98685,80 +98685,80 @@ var require_polyfills = __commonJS({
                 if (callback) callback(err);
                 return;
               }
-              fs4.fchmod(fd, mode, function(err2) {
-                fs4.close(fd, function(err22) {
+              fs5.fchmod(fd, mode, function(err2) {
+                fs5.close(fd, function(err22) {
                   if (callback) callback(err2 || err22);
                 });
               });
             }
           );
         };
-        fs4.lchmodSync = function(path3, mode) {
-          var fd = fs4.openSync(path3, constants.O_WRONLY | constants.O_SYMLINK, mode);
+        fs5.lchmodSync = function(path3, mode) {
+          var fd = fs5.openSync(path3, constants.O_WRONLY | constants.O_SYMLINK, mode);
           var threw = true;
           var ret;
           try {
-            ret = fs4.fchmodSync(fd, mode);
+            ret = fs5.fchmodSync(fd, mode);
             threw = false;
           } finally {
             if (threw) {
               try {
-                fs4.closeSync(fd);
+                fs5.closeSync(fd);
               } catch (er) {
               }
             } else {
-              fs4.closeSync(fd);
+              fs5.closeSync(fd);
             }
           }
           return ret;
         };
       }
-      function patchLutimes(fs4) {
-        if (constants.hasOwnProperty("O_SYMLINK") && fs4.futimes) {
-          fs4.lutimes = function(path3, at, mt, cb) {
-            fs4.open(path3, constants.O_SYMLINK, function(er, fd) {
+      function patchLutimes(fs5) {
+        if (constants.hasOwnProperty("O_SYMLINK") && fs5.futimes) {
+          fs5.lutimes = function(path3, at, mt, cb) {
+            fs5.open(path3, constants.O_SYMLINK, function(er, fd) {
               if (er) {
                 if (cb) cb(er);
                 return;
               }
-              fs4.futimes(fd, at, mt, function(er2) {
-                fs4.close(fd, function(er22) {
+              fs5.futimes(fd, at, mt, function(er2) {
+                fs5.close(fd, function(er22) {
                   if (cb) cb(er2 || er22);
                 });
               });
             });
           };
-          fs4.lutimesSync = function(path3, at, mt) {
-            var fd = fs4.openSync(path3, constants.O_SYMLINK);
+          fs5.lutimesSync = function(path3, at, mt) {
+            var fd = fs5.openSync(path3, constants.O_SYMLINK);
             var ret;
             var threw = true;
             try {
-              ret = fs4.futimesSync(fd, at, mt);
+              ret = fs5.futimesSync(fd, at, mt);
               threw = false;
             } finally {
               if (threw) {
                 try {
-                  fs4.closeSync(fd);
+                  fs5.closeSync(fd);
                 } catch (er) {
                 }
               } else {
-                fs4.closeSync(fd);
+                fs5.closeSync(fd);
               }
             }
             return ret;
           };
-        } else if (fs4.futimes) {
-          fs4.lutimes = function(_a5, _b2, _c2, cb) {
+        } else if (fs5.futimes) {
+          fs5.lutimes = function(_a5, _b2, _c2, cb) {
             if (cb) process.nextTick(cb);
           };
-          fs4.lutimesSync = function() {
+          fs5.lutimesSync = function() {
           };
         }
       }
       function chmodFix(orig) {
         if (!orig) return orig;
         return function(target, mode, cb) {
-          return orig.call(fs3, target, mode, function(er) {
+          return orig.call(fs4, target, mode, function(er) {
             if (chownErOk(er)) er = null;
             if (cb) cb.apply(this, arguments);
           });
@@ -98768,7 +98768,7 @@ var require_polyfills = __commonJS({
         if (!orig) return orig;
         return function(target, mode) {
           try {
-            return orig.call(fs3, target, mode);
+            return orig.call(fs4, target, mode);
           } catch (er) {
             if (!chownErOk(er)) throw er;
           }
@@ -98777,7 +98777,7 @@ var require_polyfills = __commonJS({
       function chownFix(orig) {
         if (!orig) return orig;
         return function(target, uid, gid, cb) {
-          return orig.call(fs3, target, uid, gid, function(er) {
+          return orig.call(fs4, target, uid, gid, function(er) {
             if (chownErOk(er)) er = null;
             if (cb) cb.apply(this, arguments);
           });
@@ -98787,7 +98787,7 @@ var require_polyfills = __commonJS({
         if (!orig) return orig;
         return function(target, uid, gid) {
           try {
-            return orig.call(fs3, target, uid, gid);
+            return orig.call(fs4, target, uid, gid);
           } catch (er) {
             if (!chownErOk(er)) throw er;
           }
@@ -98807,13 +98807,13 @@ var require_polyfills = __commonJS({
             }
             if (cb) cb.apply(this, arguments);
           }
-          return options ? orig.call(fs3, target, options, callback) : orig.call(fs3, target, callback);
+          return options ? orig.call(fs4, target, options, callback) : orig.call(fs4, target, callback);
         };
       }
       function statFixSync(orig) {
         if (!orig) return orig;
         return function(target, options) {
-          var stats = options ? orig.call(fs3, target, options) : orig.call(fs3, target);
+          var stats = options ? orig.call(fs4, target, options) : orig.call(fs4, target);
           if (stats) {
             if (stats.uid < 0) stats.uid += 4294967296;
             if (stats.gid < 0) stats.gid += 4294967296;
@@ -98842,7 +98842,7 @@ var require_legacy_streams = __commonJS({
   "../../node_modules/.pnpm/graceful-fs@4.2.11/node_modules/graceful-fs/legacy-streams.js"(exports, module) {
     var Stream = __require("stream").Stream;
     module.exports = legacy;
-    function legacy(fs3) {
+    function legacy(fs4) {
       return {
         ReadStream,
         WriteStream
@@ -98885,7 +98885,7 @@ var require_legacy_streams = __commonJS({
           });
           return;
         }
-        fs3.open(this.path, this.flags, this.mode, function(err, fd) {
+        fs4.open(this.path, this.flags, this.mode, function(err, fd) {
           if (err) {
             self2.emit("error", err);
             self2.readable = false;
@@ -98924,7 +98924,7 @@ var require_legacy_streams = __commonJS({
         this.busy = false;
         this._queue = [];
         if (this.fd === null) {
-          this._open = fs3.open;
+          this._open = fs4.open;
           this._queue.push([this._open, this.path, this.flags, this.mode, void 0]);
           this.flush();
         }
@@ -98959,7 +98959,7 @@ var require_clone = __commonJS({
 // ../../node_modules/.pnpm/graceful-fs@4.2.11/node_modules/graceful-fs/graceful-fs.js
 var require_graceful_fs = __commonJS({
   "../../node_modules/.pnpm/graceful-fs@4.2.11/node_modules/graceful-fs/graceful-fs.js"(exports, module) {
-    var fs3 = __require("fs");
+    var fs4 = __require("fs");
     var polyfills = require_polyfills();
     var legacy = require_legacy_streams();
     var clone = require_clone();
@@ -98991,12 +98991,12 @@ var require_graceful_fs = __commonJS({
         m = "GFS4: " + m.split(/\n/).join("\nGFS4: ");
         console.error(m);
       };
-    if (!fs3[gracefulQueue]) {
+    if (!fs4[gracefulQueue]) {
       queue = global[gracefulQueue] || [];
-      publishQueue(fs3, queue);
-      fs3.close = function(fs$close) {
+      publishQueue(fs4, queue);
+      fs4.close = function(fs$close) {
         function close(fd, cb) {
-          return fs$close.call(fs3, fd, function(err) {
+          return fs$close.call(fs4, fd, function(err) {
             if (!err) {
               resetQueue();
             }
@@ -99008,40 +99008,40 @@ var require_graceful_fs = __commonJS({
           value: fs$close
         });
         return close;
-      }(fs3.close);
-      fs3.closeSync = function(fs$closeSync) {
+      }(fs4.close);
+      fs4.closeSync = function(fs$closeSync) {
         function closeSync(fd) {
-          fs$closeSync.apply(fs3, arguments);
+          fs$closeSync.apply(fs4, arguments);
           resetQueue();
         }
         Object.defineProperty(closeSync, previousSymbol, {
           value: fs$closeSync
         });
         return closeSync;
-      }(fs3.closeSync);
+      }(fs4.closeSync);
       if (/\bgfs4\b/i.test(process.env.NODE_DEBUG || "")) {
         process.on("exit", function() {
-          debug(fs3[gracefulQueue]);
-          __require("assert").equal(fs3[gracefulQueue].length, 0);
+          debug(fs4[gracefulQueue]);
+          __require("assert").equal(fs4[gracefulQueue].length, 0);
         });
       }
     }
     var queue;
     if (!global[gracefulQueue]) {
-      publishQueue(global, fs3[gracefulQueue]);
+      publishQueue(global, fs4[gracefulQueue]);
     }
-    module.exports = patch(clone(fs3));
-    if (process.env.TEST_GRACEFUL_FS_GLOBAL_PATCH && !fs3.__patched) {
-      module.exports = patch(fs3);
-      fs3.__patched = true;
+    module.exports = patch(clone(fs4));
+    if (process.env.TEST_GRACEFUL_FS_GLOBAL_PATCH && !fs4.__patched) {
+      module.exports = patch(fs4);
+      fs4.__patched = true;
     }
-    function patch(fs4) {
-      polyfills(fs4);
-      fs4.gracefulify = patch;
-      fs4.createReadStream = createReadStream;
-      fs4.createWriteStream = createWriteStream;
-      var fs$readFile = fs4.readFile;
-      fs4.readFile = readFile;
+    function patch(fs5) {
+      polyfills(fs5);
+      fs5.gracefulify = patch;
+      fs5.createReadStream = createReadStream;
+      fs5.createWriteStream = createWriteStream;
+      var fs$readFile = fs5.readFile;
+      fs5.readFile = readFile;
       function readFile(path3, options, cb) {
         if (typeof options === "function")
           cb = options, options = null;
@@ -99057,8 +99057,8 @@ var require_graceful_fs = __commonJS({
           });
         }
       }
-      var fs$writeFile = fs4.writeFile;
-      fs4.writeFile = writeFile;
+      var fs$writeFile = fs5.writeFile;
+      fs5.writeFile = writeFile;
       function writeFile(path3, data, options, cb) {
         if (typeof options === "function")
           cb = options, options = null;
@@ -99074,9 +99074,9 @@ var require_graceful_fs = __commonJS({
           });
         }
       }
-      var fs$appendFile = fs4.appendFile;
+      var fs$appendFile = fs5.appendFile;
       if (fs$appendFile)
-        fs4.appendFile = appendFile;
+        fs5.appendFile = appendFile;
       function appendFile(path3, data, options, cb) {
         if (typeof options === "function")
           cb = options, options = null;
@@ -99092,9 +99092,9 @@ var require_graceful_fs = __commonJS({
           });
         }
       }
-      var fs$copyFile = fs4.copyFile;
+      var fs$copyFile = fs5.copyFile;
       if (fs$copyFile)
-        fs4.copyFile = copyFile;
+        fs5.copyFile = copyFile;
       function copyFile(src, dest, flags, cb) {
         if (typeof flags === "function") {
           cb = flags;
@@ -99112,8 +99112,8 @@ var require_graceful_fs = __commonJS({
           });
         }
       }
-      var fs$readdir = fs4.readdir;
-      fs4.readdir = readdir;
+      var fs$readdir = fs5.readdir;
+      fs5.readdir = readdir;
       var noReaddirOptionVersions = /^v[0-5]\./;
       function readdir(path3, options, cb) {
         if (typeof options === "function")
@@ -99154,21 +99154,21 @@ var require_graceful_fs = __commonJS({
         }
       }
       if (process.version.substr(0, 4) === "v0.8") {
-        var legStreams = legacy(fs4);
+        var legStreams = legacy(fs5);
         ReadStream = legStreams.ReadStream;
         WriteStream = legStreams.WriteStream;
       }
-      var fs$ReadStream = fs4.ReadStream;
+      var fs$ReadStream = fs5.ReadStream;
       if (fs$ReadStream) {
         ReadStream.prototype = Object.create(fs$ReadStream.prototype);
         ReadStream.prototype.open = ReadStream$open;
       }
-      var fs$WriteStream = fs4.WriteStream;
+      var fs$WriteStream = fs5.WriteStream;
       if (fs$WriteStream) {
         WriteStream.prototype = Object.create(fs$WriteStream.prototype);
         WriteStream.prototype.open = WriteStream$open;
       }
-      Object.defineProperty(fs4, "ReadStream", {
+      Object.defineProperty(fs5, "ReadStream", {
         get: function() {
           return ReadStream;
         },
@@ -99178,7 +99178,7 @@ var require_graceful_fs = __commonJS({
         enumerable: true,
         configurable: true
       });
-      Object.defineProperty(fs4, "WriteStream", {
+      Object.defineProperty(fs5, "WriteStream", {
         get: function() {
           return WriteStream;
         },
@@ -99189,7 +99189,7 @@ var require_graceful_fs = __commonJS({
         configurable: true
       });
       var FileReadStream = ReadStream;
-      Object.defineProperty(fs4, "FileReadStream", {
+      Object.defineProperty(fs5, "FileReadStream", {
         get: function() {
           return FileReadStream;
         },
@@ -99200,7 +99200,7 @@ var require_graceful_fs = __commonJS({
         configurable: true
       });
       var FileWriteStream = WriteStream;
-      Object.defineProperty(fs4, "FileWriteStream", {
+      Object.defineProperty(fs5, "FileWriteStream", {
         get: function() {
           return FileWriteStream;
         },
@@ -99249,13 +99249,13 @@ var require_graceful_fs = __commonJS({
         });
       }
       function createReadStream(path3, options) {
-        return new fs4.ReadStream(path3, options);
+        return new fs5.ReadStream(path3, options);
       }
       function createWriteStream(path3, options) {
-        return new fs4.WriteStream(path3, options);
+        return new fs5.WriteStream(path3, options);
       }
-      var fs$open = fs4.open;
-      fs4.open = open;
+      var fs$open = fs5.open;
+      fs5.open = open;
       function open(path3, flags, mode, cb) {
         if (typeof mode === "function")
           cb = mode, mode = null;
@@ -99271,20 +99271,20 @@ var require_graceful_fs = __commonJS({
           });
         }
       }
-      return fs4;
+      return fs5;
     }
     function enqueue(elem) {
       debug("ENQUEUE", elem[0].name, elem[1]);
-      fs3[gracefulQueue].push(elem);
+      fs4[gracefulQueue].push(elem);
       retry();
     }
     var retryTimer;
     function resetQueue() {
       var now = Date.now();
-      for (var i = 0; i < fs3[gracefulQueue].length; ++i) {
-        if (fs3[gracefulQueue][i].length > 2) {
-          fs3[gracefulQueue][i][3] = now;
-          fs3[gracefulQueue][i][4] = now;
+      for (var i = 0; i < fs4[gracefulQueue].length; ++i) {
+        if (fs4[gracefulQueue][i].length > 2) {
+          fs4[gracefulQueue][i][3] = now;
+          fs4[gracefulQueue][i][4] = now;
         }
       }
       retry();
@@ -99292,9 +99292,9 @@ var require_graceful_fs = __commonJS({
     function retry() {
       clearTimeout(retryTimer);
       retryTimer = void 0;
-      if (fs3[gracefulQueue].length === 0)
+      if (fs4[gracefulQueue].length === 0)
         return;
-      var elem = fs3[gracefulQueue].shift();
+      var elem = fs4[gracefulQueue].shift();
       var fn = elem[0];
       var args = elem[1];
       var err = elem[2];
@@ -99316,7 +99316,7 @@ var require_graceful_fs = __commonJS({
           debug("RETRY", fn.name, args);
           fn.apply(null, args.concat([startTime]));
         } else {
-          fs3[gracefulQueue].push(elem);
+          fs4[gracefulQueue].push(elem);
         }
       }
       if (retryTimer === void 0) {
@@ -114424,8 +114424,8 @@ var require_commonjs19 = __commonJS({
        *
        * @internal
        */
-      constructor(cwd = process.cwd(), pathImpl, sep, { nocase, childrenCacheSize = 16 * 1024, fs: fs3 = defaultFS } = {}) {
-        this.#fs = fsFromOption(fs3);
+      constructor(cwd = process.cwd(), pathImpl, sep, { nocase, childrenCacheSize = 16 * 1024, fs: fs4 = defaultFS } = {}) {
+        this.#fs = fsFromOption(fs4);
         if (cwd instanceof URL || cwd.startsWith("file://")) {
           cwd = (0, node_url_1.fileURLToPath)(cwd);
         }
@@ -114984,8 +114984,8 @@ var require_commonjs19 = __commonJS({
       /**
        * @internal
        */
-      newRoot(fs3) {
-        return new PathWin32(this.rootPath, IFDIR, void 0, this.roots, this.nocase, this.childrenCache(), { fs: fs3 });
+      newRoot(fs4) {
+        return new PathWin32(this.rootPath, IFDIR, void 0, this.roots, this.nocase, this.childrenCache(), { fs: fs4 });
       }
       /**
        * Return true if the provided path string is an absolute path
@@ -115014,8 +115014,8 @@ var require_commonjs19 = __commonJS({
       /**
        * @internal
        */
-      newRoot(fs3) {
-        return new PathPosix(this.rootPath, IFDIR, void 0, this.roots, this.nocase, this.childrenCache(), { fs: fs3 });
+      newRoot(fs4) {
+        return new PathPosix(this.rootPath, IFDIR, void 0, this.roots, this.nocase, this.childrenCache(), { fs: fs4 });
       }
       /**
        * Return true if the provided path string is an absolute path
@@ -116200,7 +116200,7 @@ var require_commonjs20 = __commonJS({
 // ../../node_modules/.pnpm/archiver-utils@5.0.2/node_modules/archiver-utils/file.js
 var require_file3 = __commonJS({
   "../../node_modules/.pnpm/archiver-utils@5.0.2/node_modules/archiver-utils/file.js"(exports, module) {
-    var fs3 = require_graceful_fs();
+    var fs4 = require_graceful_fs();
     var path3 = __require("path");
     var flatten = require_flatten();
     var difference = require_difference();
@@ -116227,7 +116227,7 @@ var require_file3 = __commonJS({
     };
     file.exists = function() {
       var filepath = path3.join.apply(path3, arguments);
-      return fs3.existsSync(filepath);
+      return fs4.existsSync(filepath);
     };
     file.expand = function(...args) {
       var options = isPlainObject(args[0]) ? args.shift() : {};
@@ -116245,7 +116245,7 @@ var require_file3 = __commonJS({
             if (typeof options.filter === "function") {
               return options.filter(filepath);
             } else {
-              return fs3.statSync(filepath)[options.filter]();
+              return fs4.statSync(filepath)[options.filter]();
             }
           } catch (e) {
             return false;
@@ -116353,7 +116353,7 @@ var require_file3 = __commonJS({
 // ../../node_modules/.pnpm/archiver-utils@5.0.2/node_modules/archiver-utils/index.js
 var require_archiver_utils = __commonJS({
   "../../node_modules/.pnpm/archiver-utils@5.0.2/node_modules/archiver-utils/index.js"(exports, module) {
-    var fs3 = require_graceful_fs();
+    var fs4 = require_graceful_fs();
     var path3 = __require("path");
     var isStream = require_is_stream();
     var lazystream = require_lazystream();
@@ -116402,7 +116402,7 @@ var require_archiver_utils = __commonJS({
     };
     utils.lazyReadStream = function(filepath) {
       return new lazystream.Readable(function() {
-        return fs3.createReadStream(filepath);
+        return fs4.createReadStream(filepath);
       });
     };
     utils.normalizeInputSource = function(source) {
@@ -116430,7 +116430,7 @@ var require_archiver_utils = __commonJS({
         callback = base;
         base = dirpath;
       }
-      fs3.readdir(dirpath, function(err, list) {
+      fs4.readdir(dirpath, function(err, list) {
         var i = 0;
         var file;
         var filepath;
@@ -116443,7 +116443,7 @@ var require_archiver_utils = __commonJS({
             return callback(null, results);
           }
           filepath = path3.join(dirpath, file);
-          fs3.stat(filepath, function(err2, stats) {
+          fs4.stat(filepath, function(err2, stats) {
             results.push({
               path: filepath,
               relative: path3.relative(base, filepath).replace(/\\/g, "/"),
@@ -116505,7 +116505,7 @@ var require_error3 = __commonJS({
 // ../../node_modules/.pnpm/archiver@7.0.1/node_modules/archiver/lib/core.js
 var require_core2 = __commonJS({
   "../../node_modules/.pnpm/archiver@7.0.1/node_modules/archiver/lib/core.js"(exports, module) {
-    var fs3 = __require("fs");
+    var fs4 = __require("fs");
     var glob = require_readdir_glob();
     var async = require_async();
     var path3 = __require("path");
@@ -116569,7 +116569,7 @@ var require_core2 = __commonJS({
       data.sourcePath = filepath;
       task.data = data;
       this._entriesCount++;
-      if (data.stats && data.stats instanceof fs3.Stats) {
+      if (data.stats && data.stats instanceof fs4.Stats) {
         task = this._updateQueueTaskWithStats(task, data.stats);
         if (task) {
           if (data.stats.size) {
@@ -116740,7 +116740,7 @@ var require_core2 = __commonJS({
         callback();
         return;
       }
-      fs3.lstat(task.filepath, function(err, stats) {
+      fs4.lstat(task.filepath, function(err, stats) {
         if (this._state.aborted) {
           setImmediate(callback);
           return;
@@ -116783,7 +116783,7 @@ var require_core2 = __commonJS({
         task.data.sourceType = "buffer";
         task.source = Buffer.concat([]);
       } else if (stats.isSymbolicLink() && this._moduleSupports("symlink")) {
-        var linkPath = fs3.readlinkSync(task.filepath);
+        var linkPath = fs4.readlinkSync(task.filepath);
         var dirName = path3.dirname(task.filepath);
         task.data.type = "symlink";
         task.data.linkname = path3.relative(dirName, path3.resolve(dirName, linkPath));
@@ -134516,7 +134516,7 @@ var require_parser_stream = __commonJS({
 var require_mkdirp = __commonJS({
   "../../node_modules/.pnpm/mkdirp@0.5.6/node_modules/mkdirp/index.js"(exports, module) {
     var path3 = __require("path");
-    var fs3 = __require("fs");
+    var fs4 = __require("fs");
     var _0777 = parseInt("0777", 8);
     module.exports = mkdirP.mkdirp = mkdirP.mkdirP = mkdirP;
     function mkdirP(p, opts, f, made) {
@@ -134527,7 +134527,7 @@ var require_mkdirp = __commonJS({
         opts = { mode: opts };
       }
       var mode = opts.mode;
-      var xfs = opts.fs || fs3;
+      var xfs = opts.fs || fs4;
       if (mode === void 0) {
         mode = _0777;
       }
@@ -134566,7 +134566,7 @@ var require_mkdirp = __commonJS({
         opts = { mode: opts };
       }
       var mode = opts.mode;
-      var xfs = opts.fs || fs3;
+      var xfs = opts.fs || fs4;
       if (mode === void 0) {
         mode = _0777;
       }
@@ -134603,7 +134603,7 @@ var require_mkdirp = __commonJS({
 // ../../node_modules/.pnpm/unzip-stream@0.3.4/node_modules/unzip-stream/lib/extract.js
 var require_extract2 = __commonJS({
   "../../node_modules/.pnpm/unzip-stream@0.3.4/node_modules/unzip-stream/lib/extract.js"(exports, module) {
-    var fs3 = __require("fs");
+    var fs4 = __require("fs");
     var path3 = __require("path");
     var util3 = __require("util");
     var mkdirp = require_mkdirp();
@@ -134650,7 +134650,7 @@ var require_extract2 = __commonJS({
       var directory = entry.isDirectory ? destPath : path3.dirname(destPath);
       this.unfinishedEntries++;
       var writeFileFn = function() {
-        var pipedStream = fs3.createWriteStream(destPath);
+        var pipedStream = fs4.createWriteStream(destPath);
         pipedStream.on("close", function() {
           self2.unfinishedEntries--;
           self2._notifyAwaiter();
@@ -143894,14 +143894,14 @@ var require_parser = __commonJS({
             case "scalar":
             case "single-quoted-scalar":
             case "double-quoted-scalar": {
-              const fs3 = this.flowScalar(this.type);
+              const fs4 = this.flowScalar(this.type);
               if (atNextItem || it.value) {
-                map.items.push({ start, key: fs3, sep: [] });
+                map.items.push({ start, key: fs4, sep: [] });
                 this.onKeyLine = true;
               } else if (it.sep) {
-                this.stack.push(fs3);
+                this.stack.push(fs4);
               } else {
-                Object.assign(it, { key: fs3, sep: [] });
+                Object.assign(it, { key: fs4, sep: [] });
                 this.onKeyLine = true;
               }
               return;
@@ -144029,13 +144029,13 @@ var require_parser = __commonJS({
             case "scalar":
             case "single-quoted-scalar":
             case "double-quoted-scalar": {
-              const fs3 = this.flowScalar(this.type);
+              const fs4 = this.flowScalar(this.type);
               if (!it || it.value)
-                fc.items.push({ start: [], key: fs3, sep: [] });
+                fc.items.push({ start: [], key: fs4, sep: [] });
               else if (it.sep)
-                this.stack.push(fs3);
+                this.stack.push(fs4);
               else
-                Object.assign(it, { key: fs3, sep: [] });
+                Object.assign(it, { key: fs4, sep: [] });
               return;
             }
             case "flow-map-end":
@@ -144347,7 +144347,7 @@ var require_dist5 = __commonJS({
 var core = __toESM(require_core(), 1);
 var github = __toESM(require_github(), 1);
 var import_artifact = __toESM(require_artifact2(), 1);
-import fs2 from "fs/promises";
+import fs3 from "fs/promises";
 import path2 from "path";
 
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
@@ -148393,10 +148393,13 @@ var NEVER = INVALID;
 
 // ../core/dist/index.js
 var import_yaml = __toESM(require_dist5());
-import fs from "fs/promises";
+var import_yaml2 = __toESM(require_dist5());
+import fs2 from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-var import_yaml2 = __toESM(require_dist5());
+import fs from "fs/promises";
+var DEFAULT_TARGET_MODEL = "gemini-3.5-flash-lite";
+var DEFAULT_JUDGE_MODEL = "gemini-3.5-flash";
 var AssertionSchema = external_exports.discriminatedUnion("type", [
   external_exports.object({
     type: external_exports.literal("contains"),
@@ -148439,7 +148442,7 @@ var TestSetSchema = external_exports.array(TestCaseSchema);
 var PromptConfigSchema = external_exports.object({
   name: external_exports.string(),
   path: external_exports.string(),
-  model: external_exports.string(),
+  model: external_exports.string().default(DEFAULT_TARGET_MODEL),
   variables: external_exports.array(external_exports.string()).default([]),
   testSet: external_exports.string(),
   rubric: external_exports.string().optional(),
@@ -148450,9 +148453,10 @@ var PromptConfigSchema = external_exports.object({
 var PromptGateConfigSchema = external_exports.object({
   prompts: external_exports.array(PromptConfigSchema),
   scoring: external_exports.object({
-    runs: external_exports.number().positive().default(3),
+    runs: external_exports.number().positive().default(1),
     passRateThreshold: external_exports.number().min(0).max(1).default(0.1),
-    enableCache: external_exports.boolean().default(true)
+    enableCache: external_exports.boolean().default(true),
+    judgeModel: external_exports.string().default(DEFAULT_JUDGE_MODEL)
   }).default({}),
   providers: external_exports.object({
     gemini: external_exports.object({
@@ -148614,6 +148618,63 @@ function deepEqual(a, b) {
   }
   return true;
 }
+function parseJudgeResponse(content) {
+  if (!content || !content.trim()) {
+    throw new Error("Empty judge response");
+  }
+  const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+  let raw = (fenced ? fenced[1] : content).trim();
+  const objectMatch = raw.match(/\{[\s\S]*\}/);
+  if (objectMatch) {
+    raw = objectMatch[0];
+  }
+  raw = raw.replace(/,\s*([}\]])/g, "$1");
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    const prefMatch = content.match(
+      /preferred["'\s:=]+["']?(A|B|tie|base|head)/i
+    );
+    if (!prefMatch) {
+      throw new Error("Judge response was not valid JSON");
+    }
+    const reasonMatch = content.match(
+      /reasoning["'\s:=]+["']([^"']{1,500})/i
+    );
+    parsed = {
+      preferred: prefMatch[1],
+      reasoning: reasonMatch?.[1] || "",
+      confidence: 0.5
+    };
+  }
+  const preferred = String(
+    parsed.preferred ?? parsed.winner ?? parsed.choice ?? ""
+  ).trim();
+  if (!preferred) {
+    throw new Error("Judge response missing preferred");
+  }
+  const confidence = Number(parsed.confidence);
+  return {
+    preferred,
+    reasoning: String(parsed.reasoning ?? ""),
+    confidence: Number.isFinite(confidence) ? confidence : 0.5
+  };
+}
+function mapPreferred(preferred) {
+  const p = preferred.toLowerCase();
+  if (p === "a" || p === "base") return "base";
+  if (p === "b" || p === "head") return "head";
+  return "tie";
+}
+function failedJudge(message) {
+  return {
+    preferredVersion: "tie",
+    reasoning: `Judge evaluation failed: ${message}`,
+    confidence: 0,
+    error: message
+  };
+}
 function computeContextFreeScore(response) {
   let validJson = false;
   try {
@@ -148631,7 +148692,7 @@ function computeContextFreeScore(response) {
     cost: response.cost
   };
 }
-async function runPairwiseJudge(provider, rubric, promptText, input, baseOutput, headOutput) {
+async function runPairwiseJudge(provider, rubric, promptText, input, baseOutput, headOutput, judgeModel = DEFAULT_JUDGE_MODEL) {
   const judgePrompt = `You are evaluating two versions of an LLM prompt output. Your task is to determine which version is better or if they are equal.
 
 RUBRIC:
@@ -148663,32 +148724,50 @@ Respond in JSON format:
 }`;
   try {
     const response = await provider.call({
-      model: "gemini-2.0-flash-exp",
+      model: judgeModel,
       prompt: judgePrompt,
       temperature: 0.3
     });
     if (response.error || response.refusal) {
-      throw new Error("Judge call failed");
+      return failedJudge(response.error || "Judge call refused");
     }
-    const parsed = JSON.parse(response.content);
+    const parsed = parseJudgeResponse(response.content);
     return {
-      preferredVersion: parsed.preferred === "A" ? "base" : parsed.preferred === "B" ? "head" : "tie",
+      preferredVersion: mapPreferred(parsed.preferred),
       reasoning: parsed.reasoning || "",
       confidence: parsed.confidence || 0.5
     };
   } catch (error) {
-    return {
-      preferredVersion: "tie",
-      reasoning: "Judge evaluation failed",
-      confidence: 0
-    };
+    return failedJudge(error.message || "Judge evaluation failed");
   }
 }
-async function runBidirectionalJudge(provider, rubric, promptText, input, baseOutput, headOutput) {
-  const [judge1, judge2] = await Promise.all([
-    runPairwiseJudge(provider, rubric, promptText, input, baseOutput, headOutput),
-    runPairwiseJudge(provider, rubric, promptText, input, headOutput, baseOutput)
-  ]);
+async function runBidirectionalJudge(provider, rubric, promptText, input, baseOutput, headOutput, judgeModel = DEFAULT_JUDGE_MODEL) {
+  const judge1 = await runPairwiseJudge(
+    provider,
+    rubric,
+    promptText,
+    input,
+    baseOutput,
+    headOutput,
+    judgeModel
+  );
+  const judge2 = await runPairwiseJudge(
+    provider,
+    rubric,
+    promptText,
+    input,
+    headOutput,
+    baseOutput,
+    judgeModel
+  );
+  if (judge1.error || judge2.error) {
+    return {
+      preferredVersion: "tie",
+      reasoning: `inconclusive (judge error). J1: ${judge1.reasoning}. J2: ${judge2.reasoning}`,
+      confidence: 0,
+      error: judge1.error || judge2.error
+    };
+  }
   const reverseMapping = {
     base: "head",
     head: "base",
@@ -148708,6 +148787,48 @@ async function runBidirectionalJudge(provider, rubric, promptText, input, baseOu
     confidence: 0.5
   };
 }
+var CalibrationLabelSchema = external_exports.object({
+  promptName: external_exports.string(),
+  caseName: external_exports.string(),
+  output: external_exports.string(),
+  label: external_exports.enum(["good", "bad"])
+});
+var CalibrationFileSchema = external_exports.array(CalibrationLabelSchema);
+async function loadCalibrationLabels(filePath) {
+  try {
+    const content = await fs.readFile(filePath, "utf-8");
+    const parsed = import_yaml2.default.parse(content);
+    return CalibrationFileSchema.parse(parsed);
+  } catch (error) {
+    return [];
+  }
+}
+function calculateJudgeAgreement(labels, judgeResults) {
+  if (labels.length === 0 || judgeResults.length === 0) {
+    return { agreementPercentage: 0, totalCases: 0 };
+  }
+  let agreements = 0;
+  let comparisons = 0;
+  for (const result of judgeResults) {
+    const label = labels.find(
+      (l) => l.promptName === result.promptName && l.caseName === result.caseName
+    );
+    if (!label) continue;
+    comparisons++;
+    const humanSaysGood = label.label === "good";
+    const judgeSaysGood = result.isHead && result.judgePreferred === "head" || !result.isHead && result.judgePreferred === "base" || result.judgePreferred === "tie";
+    if (humanSaysGood === judgeSaysGood) {
+      agreements++;
+    }
+  }
+  if (comparisons === 0) {
+    return { agreementPercentage: 0, totalCases: 0 };
+  }
+  return {
+    agreementPercentage: agreements / comparisons * 100,
+    totalCases: comparisons
+  };
+}
 var PromptGateEngine = class {
   config;
   provider;
@@ -148720,9 +148841,18 @@ var PromptGateEngine = class {
   }
   async loadConfig() {
     const configPath = path.join(this.options.configPath);
-    const configContent = await fs.readFile(configPath, "utf-8");
+    const configContent = await fs2.readFile(configPath, "utf-8");
     const rawConfig = import_yaml.default.parse(configContent);
     this.config = PromptGateConfigSchema.parse(rawConfig);
+    if (this.options.modelOverride) {
+      this.config.prompts = this.config.prompts.map((p) => ({
+        ...p,
+        model: this.options.modelOverride
+      }));
+    }
+    if (this.options.judgeModel) {
+      this.config.scoring.judgeModel = this.options.judgeModel;
+    }
     if (this.config.scoring.enableCache !== void 0) {
       this.cache = new ResponseCache(this.config.scoring.enableCache);
     }
@@ -148744,13 +148874,45 @@ var PromptGateEngine = class {
     const passed = results.every(
       (r) => r.criticalFailures === 0 && r.passRateDelta >= -this.config.scoring.passRateThreshold
     );
+    let calibrationAgreement;
+    let calibrationSampleSize;
+    try {
+      const labelsPath = path.join(path.dirname(this.options.configPath), "calibration-labels.yaml");
+      const labels = await loadCalibrationLabels(labelsPath);
+      if (labels.length > 0) {
+        const judgeResults = [];
+        for (const promptResult of results) {
+          for (const caseResult of promptResult.caseResults) {
+            if (caseResult.judgeResult) {
+              judgeResults.push({
+                caseName: caseResult.caseName || "",
+                promptName: promptResult.promptName,
+                output: caseResult.headOutput,
+                judgePreferred: caseResult.judgeResult.preferredVersion,
+                isHead: true
+              });
+            }
+          }
+        }
+        const agreement = calculateJudgeAgreement(labels, judgeResults);
+        if (agreement.totalCases > 0) {
+          calibrationAgreement = agreement.agreementPercentage;
+          calibrationSampleSize = agreement.totalCases;
+        }
+      }
+    } catch {
+    }
+    const evaluationError = collectEvaluationError(results);
     return {
       timestamp: (/* @__PURE__ */ new Date()).toISOString(),
       baseRef: this.options.baseRef,
       headRef: this.options.headRef,
       prompts: results,
-      passed,
-      totalCost
+      passed: evaluationError ? false : passed,
+      totalCost,
+      calibrationAgreement,
+      calibrationSampleSize,
+      evaluationError
     };
   }
   getPromptsToTest() {
@@ -148765,15 +148927,27 @@ var PromptGateEngine = class {
   }
   async evalPrompt(promptConfig) {
     const testSet = await this.loadTestSet(promptConfig.testSet);
-    const basePromptText = await this.loadPromptFromRef(
+    let basePromptText = await this.loadPromptFromRef(
       promptConfig.path,
       this.options.baseRef
     );
-    const headPromptText = await this.loadPromptFromRef(
-      promptConfig.path,
-      this.options.headRef
-    );
-    if (!basePromptText || !headPromptText) {
+    if (!basePromptText) {
+      try {
+        basePromptText = await this.loadPrompt(promptConfig.path);
+      } catch {
+        return null;
+      }
+    }
+    let headPromptText;
+    try {
+      headPromptText = await this.loadPrompt(promptConfig.path);
+    } catch {
+      headPromptText = await this.loadPromptFromRef(
+        promptConfig.path,
+        this.options.headRef
+      );
+    }
+    if (!headPromptText) {
       return null;
     }
     const caseResults = [];
@@ -148790,7 +148964,7 @@ var PromptGateEngine = class {
       (c) => !c.baseContextFree.error && !c.headContextFree.error && c.baseAssertions.every((a) => a.passed) && c.headAssertions.every((a) => a.passed) && (!c.judgeResult || c.judgeResult.preferredVersion !== "base")
     ).length;
     const criticalFailures = caseResults.filter(
-      (c) => c.critical && (c.headContextFree.error || c.headAssertions.some((a) => !a.passed) || c.judgeResult?.preferredVersion === "base")
+      (c) => c.critical && (c.headContextFree.error || c.headAssertions.some((a) => !a.passed))
     ).length;
     const flakyCount = caseResults.filter((c) => c.flaky).length;
     const basePassRate = caseResults.filter(
@@ -148858,14 +149032,15 @@ var PromptGateEngine = class {
       (a) => checkAssertion(a, headResponse.content)
     ) || [];
     let judgeResult;
-    if (promptConfig.rubric && !baseResponse.error && !headResponse.error && baseAssertions.every((a) => a.passed) && headAssertions.every((a) => a.passed)) {
+    if (promptConfig.rubric && !baseResponse.error && !headResponse.error && baseResponse.content && headResponse.content) {
       judgeResult = await runBidirectionalJudge(
         this.provider,
         promptConfig.rubric,
         headPromptText,
         testCase.inputs,
         baseResponse.content,
-        headResponse.content
+        headResponse.content,
+        this.options.judgeModel || this.config.scoring.judgeModel
       );
     }
     return {
@@ -148880,7 +149055,8 @@ var PromptGateEngine = class {
       headAssertions,
       judgeResult,
       flaky,
-      runs
+      runs,
+      providerError: baseResponse.error || headResponse.error
     };
   }
   async callLLM(config, prompt) {
@@ -148902,6 +149078,10 @@ var PromptGateEngine = class {
       temperature: config.temperature,
       maxTokens: config.maxTokens
     });
+    if (response.error) {
+      console.error(`LLM error (${config.model}): ${response.error}`);
+      return response;
+    }
     this.cache.set(hash, response);
     return response;
   }
@@ -148914,7 +149094,7 @@ var PromptGateEngine = class {
     return result;
   }
   async loadPrompt(filePath) {
-    return fs.readFile(filePath, "utf-8");
+    return fs2.readFile(filePath, "utf-8");
   }
   async loadPromptFromRef(promptPath, ref) {
     const { execSync } = await import("child_process");
@@ -148929,11 +149109,27 @@ var PromptGateEngine = class {
     }
   }
   async loadTestSet(filePath) {
-    const content = await fs.readFile(filePath, "utf-8");
+    const content = await fs2.readFile(filePath, "utf-8");
     const parsed = import_yaml.default.parse(content);
     return TestSetSchema.parse(parsed);
   }
 };
+function collectEvaluationError(results) {
+  if (results.length === 0) {
+    return void 0;
+  }
+  const cases = results.flatMap((r) => r.caseResults);
+  if (cases.length === 0) {
+    return void 0;
+  }
+  const allErrored = cases.every(
+    (c) => c.baseContextFree.error && c.headContextFree.error
+  );
+  if (!allErrored) {
+    return void 0;
+  }
+  return cases.find((c) => c.providerError)?.providerError || "All test cases failed with LLM errors";
+}
 var BaseProvider = class {
   estimateTokens(text) {
     return Math.ceil(text.length / 4);
@@ -148947,91 +149143,134 @@ var BaseProvider = class {
     };
   }
 };
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+function parseRetryDelayMs(message) {
+  const match = message.match(/"retryDelay":\s*"(\d+)s"/);
+  if (match) {
+    return (Number(match[1]) + 1) * 1e3;
+  }
+  return 8e3;
+}
 var GeminiProvider = class extends BaseProvider {
   name = "gemini";
   apiKey;
   baseUrl;
+  lastCallAt = 0;
+  minIntervalMs;
   constructor(config) {
     super();
     this.apiKey = config.apiKey;
     this.baseUrl = config.baseUrl || "https://generativelanguage.googleapis.com/v1beta";
+    const fromEnv = Number(process.env.GEMINI_MIN_INTERVAL_MS);
+    this.minIntervalMs = Number.isFinite(fromEnv) && fromEnv >= 0 ? fromEnv : 1500;
   }
   async call(params) {
     const startTime = Date.now();
-    try {
-      const contents = [];
-      if (params.systemPrompt) {
-        contents.push({
-          role: "user",
-          parts: [{ text: params.systemPrompt }]
-        });
-        contents.push({
-          role: "model",
-          parts: [{ text: "Understood." }]
-        });
+    let lastError = null;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        await this.throttle();
+        return await this.callModel(params.model, params, startTime);
+      } catch (error) {
+        lastError = error;
+        const statusMatch = String(error.message).match(
+          /Gemini API error \((\d+)\)/
+        );
+        const status = statusMatch ? Number(statusMatch[1]) : 0;
+        const daily = /per day|requests per day|retry in \d+h/i.test(
+          error.message
+        );
+        const retryable = !daily && (status === 429 || status === 500 || status === 502 || status === 503 || status === 504);
+        if (retryable && attempt < 3) {
+          const delay2 = Math.min(
+            status === 429 ? parseRetryDelayMs(error.message) : 2e3 * 2 ** attempt,
+            15e3
+          );
+          console.warn(
+            `Gemini ${status} (${params.model}); retrying in ${Math.round(delay2 / 1e3)}s`
+          );
+          await sleep(delay2);
+          continue;
+        }
+        console.error(`Gemini call failed (${params.model}): ${error.message}`);
+        return this.handleError(error);
       }
+    }
+    return this.handleError(lastError || new Error("Gemini request failed"));
+  }
+  async throttle() {
+    if (this.minIntervalMs <= 0) return;
+    const elapsed = Date.now() - this.lastCallAt;
+    if (this.lastCallAt && elapsed < this.minIntervalMs) {
+      await sleep(this.minIntervalMs - elapsed);
+    }
+    this.lastCallAt = Date.now();
+  }
+  async callModel(model, params, startTime) {
+    const contents = [];
+    if (params.systemPrompt) {
       contents.push({
         role: "user",
-        parts: [{ text: params.prompt }]
+        parts: [{ text: params.systemPrompt }]
       });
-      const requestBody = {
-        contents,
-        generationConfig: {}
-      };
-      if (params.temperature !== void 0) {
-        requestBody.generationConfig.temperature = params.temperature;
-      }
-      if (params.maxTokens) {
-        requestBody.generationConfig.maxOutputTokens = params.maxTokens;
-      }
-      const response = await fetch(
-        `${this.baseUrl}/models/${params.model}:generateContent?key=${this.apiKey}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(requestBody)
-        }
-      );
-      const latencyMs = Date.now() - startTime;
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Gemini API error (${response.status}): ${errorText}`
-        );
-      }
-      const data = await response.json();
-      if (data.promptFeedback?.blockReason || !data.candidates || data.candidates.length === 0) {
-        return {
-          content: "",
-          latencyMs,
-          cost: 0,
-          refusal: true
-        };
-      }
-      const candidate = data.candidates[0];
-      const text = candidate.content?.parts?.[0]?.text || "";
-      const inputTokens = this.estimateTokens(params.prompt);
-      const outputTokens = this.estimateTokens(text);
-      const cost = this.estimateCost(params.model, inputTokens, outputTokens);
-      return {
-        content: text,
-        latencyMs,
-        cost
-      };
-    } catch (error) {
-      return this.handleError(error);
+      contents.push({
+        role: "model",
+        parts: [{ text: "Understood." }]
+      });
     }
+    contents.push({
+      role: "user",
+      parts: [{ text: params.prompt }]
+    });
+    const generationConfig = {};
+    if (params.temperature !== void 0) {
+      generationConfig.temperature = params.temperature;
+    }
+    if (params.maxTokens) {
+      generationConfig.maxOutputTokens = params.maxTokens;
+    }
+    const response = await fetch(
+      `${this.baseUrl}/models/${model}:generateContent?key=${this.apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "PromptGate/1.0"
+        },
+        body: JSON.stringify({ contents, generationConfig }),
+        signal: AbortSignal.timeout(45e3)
+      }
+    );
+    const latencyMs = Date.now() - startTime;
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+    }
+    const data = await response.json();
+    if (data.promptFeedback?.blockReason || !data.candidates || data.candidates.length === 0) {
+      return {
+        content: "",
+        latencyMs,
+        cost: 0,
+        refusal: true
+      };
+    }
+    const text = data.candidates[0].content?.parts?.[0]?.text || "";
+    const inputTokens = this.estimateTokens(params.prompt);
+    const outputTokens = this.estimateTokens(text);
+    const cost = this.estimateCost(model, inputTokens, outputTokens);
+    return { content: text, latencyMs, cost };
   }
   estimateCost(model, inputTokens, outputTokens) {
     const rates = {
-      "gemini-2.0-flash-exp": { input: 0, output: 0 },
-      "gemini-1.5-flash": { input: 0.075, output: 0.3 },
-      "gemini-1.5-flash-8b": { input: 0.0375, output: 0.15 },
-      "gemini-1.5-pro": { input: 1.25, output: 5 }
+      "gemini-3.5-flash-lite": { input: 0.1, output: 0.4 },
+      "gemini-3.5-flash": { input: 0.15, output: 0.6 },
+      "gemini-2.0-flash": { input: 0.1, output: 0.4 },
+      "gemini-1.5-flash": { input: 0.075, output: 0.3 }
     };
-    const rate = rates[model] || rates["gemini-1.5-flash"];
+    const rate = rates[model] || rates["gemini-3.5-flash-lite"];
     return (inputTokens * rate.input + outputTokens * rate.output) / 1e6;
   }
 };
@@ -149170,27 +149409,138 @@ var ProxyProvider = class extends BaseProvider {
     return 0;
   }
 };
-var CalibrationLabelSchema = external_exports.object({
-  promptName: external_exports.string(),
-  caseName: external_exports.string(),
-  output: external_exports.string(),
-  label: external_exports.enum(["good", "bad"])
-});
-var CalibrationFileSchema = external_exports.array(CalibrationLabelSchema);
+
+// src/comment.ts
+function formatPRComment(report) {
+  let comment = `<!-- promptgate-report -->
+
+`;
+  if (report.evaluationError) {
+    comment += `## \u274C PromptGate Evaluation Error
+
+`;
+    comment += `**evaluation error:** ${report.evaluationError}
+
+`;
+    comment += `Every test case failed before scoring. This is not a prompt regression \u2014 the LLM provider returned errors for all cases.
+
+`;
+    comment += `**Base:** \`${report.baseRef.slice(0, 7)}\` | **Head:** \`${report.headRef.slice(0, 7)}\`
+`;
+    comment += `
+_Evaluated at ${new Date(report.timestamp).toLocaleString()}_
+`;
+    return comment;
+  }
+  const emoji = report.passed ? "\u2705" : "\u274C";
+  const status = report.passed ? "PASSED" : "FAILED";
+  comment += `## ${emoji} PromptGate Evaluation ${status}
+
+`;
+  comment += `**Base:** \`${report.baseRef.slice(0, 7)}\` | **Head:** \`${report.headRef.slice(0, 7)}\`
+
+`;
+  for (const promptResult of report.prompts) {
+    const delta = promptResult.passRateDelta;
+    const deltaStr = delta >= 0 ? `+${(delta * 100).toFixed(1)}%` : `${(delta * 100).toFixed(1)}%`;
+    const deltaEmoji = delta < -0.05 ? "\u{1F4C9}" : delta > 0.05 ? "\u{1F4C8}" : "\u27A1\uFE0F";
+    comment += `### ${promptResult.promptName}
+
+`;
+    comment += `| Metric | Base | Head | Delta |
+`;
+    comment += `|--------|------|------|-------|
+`;
+    comment += `| Pass Rate | ${(promptResult.basePassRate * 100).toFixed(1)}% | ${(promptResult.headPassRate * 100).toFixed(1)}% | ${deltaEmoji} ${deltaStr} |
+`;
+    comment += `| Avg Latency | ${promptResult.avgLatencyBase.toFixed(0)}ms | ${promptResult.avgLatencyHead.toFixed(0)}ms | ${(promptResult.avgLatencyHead - promptResult.avgLatencyBase).toFixed(0)}ms |
+`;
+    comment += `| Cost | $${promptResult.totalCostBase.toFixed(4)} | $${promptResult.totalCostHead.toFixed(4)} | $${(promptResult.totalCostHead - promptResult.totalCostBase).toFixed(4)} |
+`;
+    if (promptResult.criticalFailures > 0) {
+      comment += `
+\u26A0\uFE0F **${promptResult.criticalFailures} critical failure(s)**
+`;
+    }
+    if (promptResult.flakyCount > 0) {
+      comment += `
+\u{1F3B2} **${promptResult.flakyCount} flaky case(s)** (non-deterministic outputs)
+`;
+    }
+    const regressedCases = promptResult.caseResults.filter(
+      (c) => c.judgeResult?.preferredVersion === "base" || !c.baseContextFree.error && c.headContextFree.error || c.baseAssertions.every((a) => a.passed) && c.headAssertions.some((a) => !a.passed)
+    );
+    const casesToShow = regressedCases.length > 0 ? regressedCases.slice(0, 3) : promptResult.caseResults.slice(0, 2);
+    if (casesToShow.length > 0) {
+      const heading = regressedCases.length > 0 ? `\u{1F50D} Regressed Cases (${regressedCases.length})` : `\u{1F50D} Sample Cases (${casesToShow.length})`;
+      comment += `
+<details>
+<summary>${heading}</summary>
+
+`;
+      for (const caseResult of casesToShow) {
+        comment += `**${caseResult.caseName || "Unnamed"}**${caseResult.critical ? " \u{1F534} CRITICAL" : ""}
+
+`;
+        comment += `Base: \`${truncate(caseResult.baseOutput, 180)}\`
+
+`;
+        comment += `Head: \`${truncate(caseResult.headOutput, 180)}\`
+
+`;
+        if (caseResult.judgeResult) {
+          comment += `Judge (${caseResult.judgeResult.preferredVersion}): ${caseResult.judgeResult.reasoning}
+
+`;
+        }
+      }
+      comment += `</details>
+
+`;
+    }
+  }
+  comment += `
+**Total Cost:** $${report.totalCost.toFixed(4)}
+`;
+  if (report.calibrationAgreement !== void 0 && report.calibrationSampleSize !== void 0) {
+    comment += `
+**Judge Calibration:** ${report.calibrationAgreement.toFixed(1)}% agreement (${report.calibrationSampleSize} labeled cases)
+`;
+  }
+  comment += `
+_Evaluated at ${new Date(report.timestamp).toLocaleString()}_
+`;
+  return comment;
+}
+function truncate(str, maxLen) {
+  if (str.length <= maxLen) return str;
+  return str.slice(0, maxLen) + "...";
+}
 
 // src/index.ts
 async function run() {
   try {
+    const pr = github.context.payload.pull_request;
+    if (pr && pr.head.repo.fork) {
+      core.warning(
+        "\u26A0\uFE0F PromptGate skipped: This PR is from a fork. For security reasons, PromptGate does not run on fork PRs in hosted mode. To evaluate fork PRs, use BYOK (bring your own key) mode."
+      );
+      return;
+    }
     const configPath = core.getInput("config") || "promptgate.yaml";
     const baseRef = core.getInput("base-ref") || github.context.payload.pull_request?.base?.sha || "main";
     const headRef = core.getInput("head-ref") || github.context.sha;
     const uploadResults = core.getBooleanInput("upload-results") || false;
     const apiUrl = core.getInput("api-url") || "https://promptgate-api.ekansh-gupta.workers.dev";
+    const model = core.getInput("model") || DEFAULT_TARGET_MODEL;
+    const judgeModel = core.getInput("judge-model") || DEFAULT_JUDGE_MODEL;
     const workspacePath = process.env.GITHUB_WORKSPACE || process.cwd();
     core.info(`Starting PromptGate evaluation...`);
     core.info(`Config: ${configPath}`);
     core.info(`Base: ${baseRef}`);
     core.info(`Head: ${headRef}`);
+    core.info(`Target model: ${model}`);
+    core.info(`Judge model: ${judgeModel}`);
     const changedFiles = await getChangedFiles(baseRef, headRef);
     core.info(`Changed files: ${changedFiles.length}`);
     const provider = await createProvider(apiUrl);
@@ -149199,10 +149549,12 @@ async function run() {
       provider,
       baseRef,
       headRef,
-      changedFiles
+      changedFiles,
+      modelOverride: model,
+      judgeModel
     });
     const report = await engine.run();
-    await fs2.writeFile(
+    await fs3.writeFile(
       "promptgate-report.json",
       JSON.stringify(report, null, 2)
     );
@@ -149219,7 +149571,9 @@ async function run() {
     if (uploadResults && process.env.ACTIONS_ID_TOKEN_REQUEST_URL) {
       await uploadToAPI(report, apiUrl);
     }
-    if (!report.passed) {
+    if (report.evaluationError) {
+      core.setFailed(`PromptGate evaluation error: ${report.evaluationError}`);
+    } else if (!report.passed) {
       core.setFailed("PromptGate evaluation failed: regressions detected");
     } else {
       core.info("\u2705 All prompts passed evaluation");
@@ -149294,87 +149648,6 @@ async function postPRComment(report) {
       body: comment
     });
   }
-}
-function formatPRComment(report) {
-  const emoji = report.passed ? "\u2705" : "\u274C";
-  const status = report.passed ? "PASSED" : "FAILED";
-  let comment = `<!-- promptgate-report -->
-
-`;
-  comment += `## ${emoji} PromptGate Evaluation ${status}
-
-`;
-  comment += `**Base:** \`${report.baseRef.slice(0, 7)}\` | **Head:** \`${report.headRef.slice(0, 7)}\`
-
-`;
-  for (const promptResult of report.prompts) {
-    const delta = promptResult.passRateDelta;
-    const deltaStr = delta >= 0 ? `+${(delta * 100).toFixed(1)}%` : `${(delta * 100).toFixed(1)}%`;
-    const deltaEmoji = delta < -0.05 ? "\u{1F4C9}" : delta > 0.05 ? "\u{1F4C8}" : "\u27A1\uFE0F";
-    comment += `### ${promptResult.promptName}
-
-`;
-    comment += `| Metric | Base | Head | Delta |
-`;
-    comment += `|--------|------|------|-------|
-`;
-    comment += `| Pass Rate | ${(promptResult.basePassRate * 100).toFixed(1)}% | ${(promptResult.headPassRate * 100).toFixed(1)}% | ${deltaEmoji} ${deltaStr} |
-`;
-    comment += `| Avg Latency | ${promptResult.avgLatencyBase.toFixed(0)}ms | ${promptResult.avgLatencyHead.toFixed(0)}ms | ${(promptResult.avgLatencyHead - promptResult.avgLatencyBase).toFixed(0)}ms |
-`;
-    comment += `| Cost | $${promptResult.totalCostBase.toFixed(4)} | $${promptResult.totalCostHead.toFixed(4)} | $${(promptResult.totalCostHead - promptResult.totalCostBase).toFixed(4)} |
-`;
-    if (promptResult.criticalFailures > 0) {
-      comment += `
-\u26A0\uFE0F **${promptResult.criticalFailures} critical failure(s)**
-`;
-    }
-    if (promptResult.flakyCount > 0) {
-      comment += `
-\u{1F3B2} **${promptResult.flakyCount} flaky case(s)** (non-deterministic outputs)
-`;
-    }
-    const regressedCases = promptResult.caseResults.filter(
-      (c) => c.judgeResult?.preferredVersion === "base" || !c.baseContextFree.error && c.headContextFree.error || c.baseAssertions.every((a) => a.passed) && c.headAssertions.some((a) => !a.passed)
-    );
-    if (regressedCases.length > 0) {
-      comment += `
-<details>
-<summary>\u{1F50D} Regressed Cases (${regressedCases.length})</summary>
-
-`;
-      for (const caseResult of regressedCases.slice(0, 3)) {
-        comment += `**${caseResult.caseName || "Unnamed"}**${caseResult.critical ? " \u{1F534} CRITICAL" : ""}
-
-`;
-        comment += `Base: \`${truncate(caseResult.baseOutput, 100)}\`
-
-`;
-        comment += `Head: \`${truncate(caseResult.headOutput, 100)}\`
-
-`;
-        if (caseResult.judgeResult) {
-          comment += `Judge: ${caseResult.judgeResult.reasoning}
-
-`;
-        }
-      }
-      comment += `</details>
-
-`;
-    }
-  }
-  comment += `
-**Total Cost:** $${report.totalCost.toFixed(4)}
-`;
-  comment += `
-_Evaluated at ${new Date(report.timestamp).toLocaleString()}_
-`;
-  return comment;
-}
-function truncate(str, maxLen) {
-  if (str.length <= maxLen) return str;
-  return str.slice(0, maxLen) + "...";
 }
 async function uploadToAPI(report, apiUrl) {
   try {

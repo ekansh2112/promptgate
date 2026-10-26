@@ -1,5 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
-import { computeContextFreeScore, runBidirectionalJudge } from '../scoring.js';
+import {
+  computeContextFreeScore,
+  parseJudgeResponse,
+  runBidirectionalJudge,
+} from '../scoring.js';
 import type { LLMResponse, Provider } from '../types.js';
 
 describe('computeContextFreeScore', () => {
@@ -154,5 +158,68 @@ describe('runBidirectionalJudge', () => {
 
     expect(result.preferredVersion).toBe('tie');
     expect(result.confidence).toBe(0);
+    expect(result.reasoning).toMatch(/inconclusive \(judge error\)/);
+    expect(result.reasoning).not.toMatch(/position bias detected/);
+  });
+
+  it('reports a single failed order as inconclusive, not position bias', async () => {
+    let callCount = 0;
+    const mockProvider: Provider = {
+      name: 'mock',
+      call: vi.fn().mockImplementation(async () => {
+        callCount++;
+        if (callCount === 1) {
+          return {
+            content: JSON.stringify({
+              preferred: 'B',
+              reasoning: 'Head is tighter',
+              confidence: 0.9,
+            }),
+            latencyMs: 100,
+            cost: 0.001,
+          };
+        }
+        return {
+          content: '',
+          latencyMs: 0,
+          cost: 0,
+          error: 'Gemini API error (503): UNAVAILABLE',
+        };
+      }),
+      estimateCost: () => 0.001,
+    };
+
+    const result = await runBidirectionalJudge(
+      mockProvider,
+      'Choose the better output',
+      'Test prompt',
+      { input: 'test' },
+      'base output',
+      'head output'
+    );
+
+    expect(result.preferredVersion).toBe('tie');
+    expect(result.reasoning).toMatch(/inconclusive \(judge error\)/);
+    expect(result.reasoning).toContain('UNAVAILABLE');
+    expect(result.reasoning).not.toMatch(/position bias detected/);
+  });
+});
+
+describe('parseJudgeResponse', () => {
+  it('parses fenced JSON with trailing prose and a trailing comma', () => {
+    const parsed = parseJudgeResponse(
+      'Here you go:\n```json\n{\n  "preferred": "B",\n  "reasoning": "Clearer",\n  "confidence": 0.8,\n}\n```\nThanks.'
+    );
+    expect(parsed.preferred).toBe('B');
+    expect(parsed.reasoning).toBe('Clearer');
+    expect(parsed.confidence).toBe(0.8);
+  });
+
+  it('extracts preferred from loosely formatted text', () => {
+    const parsed = parseJudgeResponse(
+      'preferred: A\nreasoning: "Base is more complete"\nconfidence: 0.6'
+    );
+    expect(parsed.preferred).toBe('A');
+    expect(parsed.reasoning).toBe('Base is more complete');
   });
 });

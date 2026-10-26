@@ -6,6 +6,10 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   pull-requests: write
@@ -84,6 +88,10 @@ jobs:
         uses: ./
         with:
           config: 'examples/promptgate.yaml'
+          model: 'gemini-3.5-flash-lite'
+          judge-model: 'gemini-3.5-flash'
+          upload-results: 'true'
+          api-url: 'https://promptgate-api.ekansh-gupta.workers.dev'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

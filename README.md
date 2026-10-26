@@ -26,42 +26,67 @@ PromptGate solves this by automating prompt evaluation in CI with:
 
 ---
 
-## 📊 Sample PR Comment
+## 📊 Dogfood PR comment (from [PR #2](https://github.com/ekansh2112/promptgate/pull/2))
 
-Here's what PromptGate posts on your pull requests:
+Posted by the GitHub Action: https://github.com/ekansh2112/promptgate/pull/2#issuecomment-6427269098
+
+This PR deliberately shortened `examples/prompts/code-review.txt` so the junior head prompt differs from the expert base. Dogfood uploaded the run to the live API (`✓ Results uploaded`). Latest scored run: [40414507906](https://github.com/ekansh2112/promptgate/actions/runs/40414507906) (also [dashboard run 3](https://promptgate-dashboard.pages.dev/repos/ekansh2112/promptgate/runs/3)).
 
 ```markdown
+<!-- promptgate-report -->
+
 ## ✅ PromptGate Evaluation PASSED
 
-**Base:** `a3f2c1b` | **Head:** `d7e9f8a`
+**Base:** `3fb2b08` | **Head:** `a928e84`
 
 ### Code Review Summary
 
 | Metric | Base | Head | Delta |
 |--------|------|------|-------|
-| Pass Rate | 100.0% | 100.0% | ➡️ +0.0% |
-| Avg Latency | 842ms | 798ms | -44ms |
-| Cost | $0.0012 | $0.0013 | $0.0001 |
+| Pass Rate | 50.0% | 50.0% | ➡️ +0.0% |
+| Avg Latency | 979ms | 1155ms | 176ms |
+| Cost | $0.0002 | $0.0001 | $-0.0001 |
 
-### Bug Report Classification
+<details>
+<summary>🔍 Sample Cases (2)</summary>
 
-| Metric | Base | Head | Delta |
-|--------|------|------|-------|
-| Pass Rate | 80.0% | 100.0% | 📈 +20.0% |
-| Avg Latency | 623ms | 611ms | -12ms |
-| Cost | $0.0015 | $0.0016 | $0.0001 |
+**Simple feature addition**
 
-🎲 **1 flaky case(s)** (non-deterministic outputs)
+Base: `**Summary:**
 
-**Total Cost:** $0.0056
+This pull request introduces a new `UserProfile` component designed to render a user's name based on a provided `userId`. However, the implementation is currently inc...`
 
-_Evaluated at 10/26/2026, 7:30:15 PM_
+Head: `This pull request adds a new `UserProfile` component that fetches and displays a user's name based on their ID. There are no breaking changes, bug fixes, or documentation updates i...`
+
+Judge (head): Both judges agree: Version B followed all prompt instructions and negative constraints. It provided exactly two short sentences describing the changes and mentioning breaking changes/bug fixes/docs as requested. Version A violated the negative constraint ('Do not discuss security, quality, or overall impact') by criticizing the code quality and potential runtime issues, and its sentences were excessively long rather than 'short'.
+
+**Breaking change** 🔴 CRITICAL
+
+Base: `**Summary:**
+
+This pull request implements a breaking API response format change by replacing the previous `{ data: result }` wrapper with a new `{ payload: result, version: 2 }` s...`
+
+Head: `This PR wraps the API response in a `payload` property and adds a `version: 2` field. Because this alters the existing response structure, it introduces a breaking change.`
+
+Judge (tie): Judges disagree (position bias detected). J1: Version B strictly follows all prompt instructions and constraints. It consists of exactly two short sentences, correctly identifies the change and the breaking nature of it, and respects the negative constraint to not discuss overall impact or quality. In contrast, Version A writes three very long sentences, includes extensive analysis of overall impact and risk (violating negative constraints), and fails to match the requested 'short informal' tone.. J2: Judge evaluation failed
+
+</details>
+
+
+**Total Cost:** $0.0002
+
+**Judge Calibration:** 100.0% agreement (2 labeled cases)
+
+_Evaluated at 10/26/2026, 10:44:10 PM_
 ```
 
-When a regression is detected, the check fails and the comment includes:
-- Side-by-side output comparison for regressed cases
-- Judge reasoning for why base was preferred
-- Critical failure indicators
+## 🌐 Live Services
+
+- **Dashboard:** https://promptgate-dashboard.pages.dev
+- **API:** https://promptgate-api.ekansh-gupta.workers.dev
+- **API Health:** https://promptgate-api.ekansh-gupta.workers.dev/health
+
+**Note:** v1 dashboard OAuth is `read:user` scope only, so it supports **public repositories only**. For private repositories, use BYOK (bring your own key) mode in the GitHub Action. Full private repository support with dashboard access is planned for v2.
 
 ---
 
@@ -93,6 +118,8 @@ jobs:
       - uses: ekansh2112/promptgate@v1
         with:
           config: promptgate.yaml
+          model: gemini-3.5-flash-lite
+          judge-model: gemini-3.5-flash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # BYOK (recommended for production):
@@ -108,7 +135,7 @@ jobs:
 prompts:
   - name: "User greeting"
     path: "prompts/greeting.txt"
-    model: "gemini-2.0-flash-exp"
+    model: "gemini-3.5-flash-lite"
     variables: ["user_name"]
     testSet: "tests/greeting.yaml"
     rubric: "Should be friendly, personalized, and under 50 words."
@@ -157,7 +184,7 @@ PromptGate will:
 prompts:
   - name: "Human-readable name"
     path: "path/to/prompt.txt"          # Prompt template file
-    model: "gemini-2.0-flash-exp"        # LLM model to use
+    model: "gemini-3.5-flash-lite"       # LLM model to use (override with action input `model`)
     variables: ["var1", "var2"]          # Variables in {{brackets}}
     testSet: "path/to/tests.yaml"        # Test cases file
     rubric: "Quality criteria..."        # Optional: for LLM judge
@@ -197,9 +224,10 @@ prompts:
 
 ```yaml
 scoring:
-  runs: 3                       # How many times to run each test (for flakiness)
+  runs: 1                       # How many times to run each test (for flakiness)
   passRateThreshold: 0.1        # Max allowed pass rate drop (0.1 = 10%)
   enableCache: true             # Cache LLM responses by hash
+  judgeModel: gemini-3.5-flash  # Pairwise judge (override with action input `judge-model`)
 ```
 
 ---
@@ -238,7 +266,7 @@ Judge prompt includes:
 - Both outputs to compare
 
 ### 4️⃣ Flakiness Detection
-Each test runs **N times** (default 3):
+Each test runs **N times** (default 1):
 - If outputs differ across runs → **flaky** 🎲
 - High flakiness = unreliable prompt (temperature too high, underspecified task)
 - Reported separately so you can investigate
@@ -262,7 +290,7 @@ You can label outputs as "good" or "bad" (via dashboard or YAML file). PromptGat
 If no API key is provided, PromptGate routes LLM calls through `promptgate-api.ekansh-gupta.workers.dev`:
 - ✅ Zero setup — just add the Action
 - ✅ Daily quotas: 1,000 calls, 500k tokens, $50 global budget
-- ✅ Only cheap models allowed (`gemini-2.0-flash-exp`, `gemini-1.5-flash`, `gemini-1.5-flash-8b`)
+- ✅ Only cheap models allowed (`gemini-3.5-flash-lite`, `gemini-3.5-flash`)
 - ✅ Response caching (saves quota)
 - ⚠️ **Google's free tier policy**: prompts may be used to improve Gemini
 - ⚠️ Fork PRs can't use hosted mode (no OIDC token)

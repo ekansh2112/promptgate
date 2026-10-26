@@ -8,16 +8,32 @@ import {
   GeminiProvider,
   OpenAIProvider,
   ProxyProvider,
+  DEFAULT_TARGET_MODEL,
+  DEFAULT_JUDGE_MODEL,
 } from '@promptgate/core';
 import type { Provider, EvalReport } from '@promptgate/core';
+import { formatPRComment } from './comment.js';
 
 async function run() {
   try {
+    // Check if this is a fork PR
+    const pr = github.context.payload.pull_request;
+    if (pr && pr.head.repo.fork) {
+      core.warning(
+        '⚠️ PromptGate skipped: This PR is from a fork. For security reasons, ' +
+        'PromptGate does not run on fork PRs in hosted mode. ' +
+        'To evaluate fork PRs, use BYOK (bring your own key) mode.'
+      );
+      return;
+    }
+
     const configPath = core.getInput('config') || 'promptgate.yaml';
     const baseRef = core.getInput('base-ref') || github.context.payload.pull_request?.base?.sha || 'main';
     const headRef = core.getInput('head-ref') || github.context.sha;
     const uploadResults = core.getBooleanInput('upload-results') || false;
     const apiUrl = core.getInput('api-url') || 'https://promptgate-api.ekansh-gupta.workers.dev';
+    const model = core.getInput('model') || DEFAULT_TARGET_MODEL;
+    const judgeModel = core.getInput('judge-model') || DEFAULT_JUDGE_MODEL;
 
     const workspacePath = process.env.GITHUB_WORKSPACE || process.cwd();
 
@@ -25,6 +41,8 @@ async function run() {
     core.info(`Config: ${configPath}`);
     core.info(`Base: ${baseRef}`);
     core.info(`Head: ${headRef}`);
+    core.info(`Target model: ${model}`);
+    core.info(`Judge model: ${judgeModel}`);
 
     const changedFiles = await getChangedFiles(baseRef, headRef);
     core.info(`Changed files: ${changedFiles.length}`);
@@ -37,6 +55,8 @@ async function run() {
       baseRef,
       headRef,
       changedFiles,
+      modelOverride: model,
+      judgeModel,
     });
 
     const report = await engine.run();
@@ -62,7 +82,9 @@ async function run() {
       await uploadToAPI(report, apiUrl);
     }
 
-    if (!report.passed) {
+    if (report.evaluationError) {
+      core.setFailed(`PromptGate evaluation error: ${report.evaluationError}`);
+    } else if (!report.passed) {
       core.setFailed('PromptGate evaluation failed: regressions detected');
     } else {
       core.info('✅ All prompts passed evaluation');
@@ -167,66 +189,6 @@ async function postPRComment(report: EvalReport) {
       body: comment,
     });
   }
-}
-
-function formatPRComment(report: EvalReport): string {
-  const emoji = report.passed ? '✅' : '❌';
-  const status = report.passed ? 'PASSED' : 'FAILED';
-
-  let comment = `<!-- promptgate-report -->\n\n`;
-  comment += `## ${emoji} PromptGate Evaluation ${status}\n\n`;
-  comment += `**Base:** \`${report.baseRef.slice(0, 7)}\` | **Head:** \`${report.headRef.slice(0, 7)}\`\n\n`;
-
-  for (const promptResult of report.prompts) {
-    const delta = promptResult.passRateDelta;
-    const deltaStr = delta >= 0 ? `+${(delta * 100).toFixed(1)}%` : `${(delta * 100).toFixed(1)}%`;
-    const deltaEmoji = delta < -0.05 ? '📉' : delta > 0.05 ? '📈' : '➡️';
-
-    comment += `### ${promptResult.promptName}\n\n`;
-    comment += `| Metric | Base | Head | Delta |\n`;
-    comment += `|--------|------|------|-------|\n`;
-    comment += `| Pass Rate | ${(promptResult.basePassRate * 100).toFixed(1)}% | ${(promptResult.headPassRate * 100).toFixed(1)}% | ${deltaEmoji} ${deltaStr} |\n`;
-    comment += `| Avg Latency | ${promptResult.avgLatencyBase.toFixed(0)}ms | ${promptResult.avgLatencyHead.toFixed(0)}ms | ${(promptResult.avgLatencyHead - promptResult.avgLatencyBase).toFixed(0)}ms |\n`;
-    comment += `| Cost | $${promptResult.totalCostBase.toFixed(4)} | $${promptResult.totalCostHead.toFixed(4)} | $${(promptResult.totalCostHead - promptResult.totalCostBase).toFixed(4)} |\n`;
-
-    if (promptResult.criticalFailures > 0) {
-      comment += `\n⚠️ **${promptResult.criticalFailures} critical failure(s)**\n`;
-    }
-
-    if (promptResult.flakyCount > 0) {
-      comment += `\n🎲 **${promptResult.flakyCount} flaky case(s)** (non-deterministic outputs)\n`;
-    }
-
-    const regressedCases = promptResult.caseResults.filter(
-      (c) =>
-        c.judgeResult?.preferredVersion === 'base' ||
-        (!c.baseContextFree.error && c.headContextFree.error) ||
-        (c.baseAssertions.every((a) => a.passed) && c.headAssertions.some((a) => !a.passed))
-    );
-
-    if (regressedCases.length > 0) {
-      comment += `\n<details>\n<summary>🔍 Regressed Cases (${regressedCases.length})</summary>\n\n`;
-      for (const caseResult of regressedCases.slice(0, 3)) {
-        comment += `**${caseResult.caseName || 'Unnamed'}**${caseResult.critical ? ' 🔴 CRITICAL' : ''}\n\n`;
-        comment += `Base: \`${truncate(caseResult.baseOutput, 100)}\`\n\n`;
-        comment += `Head: \`${truncate(caseResult.headOutput, 100)}\`\n\n`;
-        if (caseResult.judgeResult) {
-          comment += `Judge: ${caseResult.judgeResult.reasoning}\n\n`;
-        }
-      }
-      comment += `</details>\n\n`;
-    }
-  }
-
-  comment += `\n**Total Cost:** $${report.totalCost.toFixed(4)}\n`;
-  comment += `\n_Evaluated at ${new Date(report.timestamp).toLocaleString()}_\n`;
-
-  return comment;
-}
-
-function truncate(str: string, maxLen: number): string {
-  if (str.length <= maxLen) return str;
-  return str.slice(0, maxLen) + '...';
 }
 
 async function uploadToAPI(report: EvalReport, apiUrl: string) {

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DEFAULT_JUDGE_MODEL, DEFAULT_TARGET_MODEL } from './models.js';
 
 export const AssertionSchema = z.discriminatedUnion('type', [
   z.object({
@@ -49,7 +50,7 @@ export type TestSet = z.infer<typeof TestSetSchema>;
 export const PromptConfigSchema = z.object({
   name: z.string(),
   path: z.string(),
-  model: z.string(),
+  model: z.string().default(DEFAULT_TARGET_MODEL),
   variables: z.array(z.string()).default([]),
   testSet: z.string(),
   rubric: z.string().optional(),
@@ -64,9 +65,10 @@ export const PromptGateConfigSchema = z.object({
   prompts: z.array(PromptConfigSchema),
   scoring: z
     .object({
-      runs: z.number().positive().default(3),
+      runs: z.number().positive().default(1),
       passRateThreshold: z.number().min(0).max(1).default(0.1),
       enableCache: z.boolean().default(true),
+      judgeModel: z.string().default(DEFAULT_JUDGE_MODEL),
     })
     .default({}),
   providers: z

@@ -24,6 +24,14 @@ inputs:
     description: 'PromptGate API URL'
     required: false
     default: 'https://promptgate-api.ekansh-gupta.workers.dev'
+  model:
+    description: 'Override target LLM model for every prompt'
+    required: false
+    default: 'gemini-3.5-flash-lite'
+  judge-model:
+    description: 'Override pairwise-judge LLM model'
+    required: false
+    default: 'gemini-3.5-flash'
 
 outputs:
   passed:

@@ -4,9 +4,8 @@ const DAILY_CALL_LIMIT = 1000;
 const DAILY_TOKEN_LIMIT = 500_000;
 const GLOBAL_DAILY_BUDGET = 50.0;
 const ALLOWED_MODELS = [
-  'gemini-2.0-flash-exp',
-  'gemini-1.5-flash',
-  'gemini-1.5-flash-8b',
+  'gemini-3.5-flash-lite',
+  'gemini-3.5-flash',
 ];
 const MAX_PROMPT_LENGTH = 50_000;
 
