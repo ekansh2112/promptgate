@@ -7,6 +7,7 @@ describe('quota', () => {
       expect(validateModel('gemini-2.0-flash')).toBe(true);
       expect(validateModel('gemini-2.0-flash-exp')).toBe(true);
       expect(validateModel('gemini-2.5-flash')).toBe(true);
+      expect(validateModel('gemini-2.5-flash-lite')).toBe(true);
       expect(validateModel('gemini-1.5-flash')).toBe(true);
       expect(validateModel('gemini-1.5-flash-8b')).toBe(true);
     });

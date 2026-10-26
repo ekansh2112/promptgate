@@ -73,7 +73,20 @@ async function run() {
       await uploadToAPI(report, apiUrl);
     }
 
-    if (!report.passed) {
+    const allProviderErrors =
+      report.prompts.length > 0 &&
+      report.prompts.every((p) =>
+        p.caseResults.every(
+          (c) => c.baseContextFree.error && c.headContextFree.error
+        )
+      );
+
+    if (allProviderErrors) {
+      core.warning(
+        'LLM provider failed for every case (quota, auth, or outage). ' +
+          'Not failing the check — this is infrastructure, not a prompt regression.'
+      );
+    } else if (!report.passed) {
       core.setFailed('PromptGate evaluation failed: regressions detected');
     } else {
       core.info('✅ All prompts passed evaluation');
