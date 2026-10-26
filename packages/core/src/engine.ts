@@ -61,7 +61,9 @@ export class PromptGateEngine {
 
     for (const promptConfig of promptsToTest) {
       const result = await this.evalPrompt(promptConfig);
-      results.push(result);
+      if (result) {
+        results.push(result);
+      }
     }
 
     const totalCost = results.reduce(
@@ -99,7 +101,7 @@ export class PromptGateEngine {
 
   private async evalPrompt(
     promptConfig: PromptConfig
-  ): Promise<PromptResult> {
+  ): Promise<PromptResult | null> {
     const testSet = await this.loadTestSet(promptConfig.testSet);
     const basePromptText = await this.loadPromptFromRef(
       promptConfig.path,
@@ -109,6 +111,10 @@ export class PromptGateEngine {
       promptConfig.path,
       this.options.headRef
     );
+
+    if (!basePromptText || !headPromptText) {
+      return null;
+    }
 
     const caseResults: CaseResult[] = [];
 
@@ -314,7 +320,7 @@ export class PromptGateEngine {
     return fs.readFile(filePath, 'utf-8');
   }
 
-  private async loadPromptFromRef(promptPath: string, ref: string): Promise<string> {
+  private async loadPromptFromRef(promptPath: string, ref: string): Promise<string | null> {
     const { execSync } = await import('child_process');
     try {
       const output = execSync(`git show ${ref}:${promptPath}`, {
@@ -323,7 +329,7 @@ export class PromptGateEngine {
       });
       return output;
     } catch (error: any) {
-      throw new Error(`Failed to load prompt from ${ref}:${promptPath}: ${error.message}`);
+      return null;
     }
   }
 
