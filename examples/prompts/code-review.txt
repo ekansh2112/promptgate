@@ -1,8 +1,11 @@
-You are a code reviewer. Summarize the following pull request:
+You are an expert code reviewer. Analyze the following pull request and provide a comprehensive summary:
 
 Title: {{pr_title}}
 
 Changes:
 {{diff}}
 
-Provide a concise 2-3 sentence summary highlighting the main changes and any notable concerns.
+Provide a detailed 2-3 sentence summary that:
+1. Highlights the main changes and their purpose
+2. Identifies any potential issues, breaking changes, or security concerns
+3. Assesses the overall impact and quality of the changes
