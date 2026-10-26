@@ -104,8 +104,13 @@ async function checkoutRef(ref: string, targetDir: string) {
   
   await fs.mkdir(targetDir, { recursive: true });
   
-  execSync(`git worktree add ${targetDir} ${ref}`, {
+  execSync(`cp -r ${workspace}/. ${targetDir}/`, {
     cwd: workspace,
+    stdio: 'inherit',
+  });
+  
+  execSync(`git checkout ${ref}`, {
+    cwd: targetDir,
     stdio: 'inherit',
   });
 }

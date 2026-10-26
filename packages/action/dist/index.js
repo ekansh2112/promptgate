@@ -149233,8 +149233,12 @@ async function checkoutRef(ref, targetDir) {
   const { execSync } = await import("child_process");
   const workspace = process.env.GITHUB_WORKSPACE || process.cwd();
   await fs2.mkdir(targetDir, { recursive: true });
-  execSync(`git worktree add ${targetDir} ${ref}`, {
+  execSync(`cp -r ${workspace}/. ${targetDir}/`, {
     cwd: workspace,
+    stdio: "inherit"
+  });
+  execSync(`git checkout ${ref}`, {
+    cwd: targetDir,
     stdio: "inherit"
   });
 }
