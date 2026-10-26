@@ -95,6 +95,8 @@ export interface EvalReport {
   prompts: PromptResult[];
   passed: boolean;
   totalCost: number;
+  calibrationAgreement?: number;
+  calibrationSampleSize?: number;
 }
 
 export interface CacheEntry {

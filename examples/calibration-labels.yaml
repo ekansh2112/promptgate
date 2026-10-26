@@ -1,0 +1,24 @@
+- promptName: "Code Review Summary"
+  caseName: "Add user authentication"
+  output: "This PR adds user authentication"
+  label: "good"
+  
+- promptName: "Code Review Summary"
+  caseName: "Fix null pointer bug"
+  output: "Fixes a critical null pointer exception"
+  label: "good"
+  
+- promptName: "Code Review Summary"
+  caseName: "Refactor database layer"
+  output: "Refactors database queries for better performance"
+  label: "good"
+
+- promptName: "Bug Report Classification"
+  caseName: "Login fails intermittently"
+  output: "high"
+  label: "good"
+  
+- promptName: "Bug Report Classification"
+  caseName: "App crashes on launch"
+  output: "critical"
+  label: "good"

@@ -13,6 +13,17 @@ import type { Provider, EvalReport } from '@promptgate/core';
 
 async function run() {
   try {
+    // Check if this is a fork PR
+    const pr = github.context.payload.pull_request;
+    if (pr && pr.head.repo.fork) {
+      core.warning(
+        '⚠️ PromptGate skipped: This PR is from a fork. For security reasons, ' +
+        'PromptGate does not run on fork PRs in hosted mode. ' +
+        'To evaluate fork PRs, use BYOK (bring your own key) mode.'
+      );
+      return;
+    }
+
     const configPath = core.getInput('config') || 'promptgate.yaml';
     const baseRef = core.getInput('base-ref') || github.context.payload.pull_request?.base?.sha || 'main';
     const headRef = core.getInput('head-ref') || github.context.sha;
@@ -219,6 +230,11 @@ function formatPRComment(report: EvalReport): string {
   }
 
   comment += `\n**Total Cost:** $${report.totalCost.toFixed(4)}\n`;
+  
+  if (report.calibrationAgreement !== undefined && report.calibrationSampleSize !== undefined) {
+    comment += `\n**Judge Calibration:** ${report.calibrationAgreement.toFixed(1)}% agreement (${report.calibrationSampleSize} labeled cases)\n`;
+  }
+  
   comment += `\n_Evaluated at ${new Date(report.timestamp).toLocaleString()}_\n`;
 
   return comment;

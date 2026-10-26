@@ -84,6 +84,8 @@ jobs:
         uses: ./
         with:
           config: 'examples/promptgate.yaml'
+          upload-results: 'true'
+          api-url: 'https://promptgate-api.ekansh-gupta.workers.dev'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

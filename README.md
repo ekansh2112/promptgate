@@ -28,6 +28,8 @@ PromptGate solves this by automating prompt evaluation in CI with:
 
 ## 📊 Sample PR Comment
 
+<!-- Real comment will be inserted here after dogfooding PR #2 -->
+
 Here's what PromptGate posts on your pull requests:
 
 ```markdown
@@ -54,6 +56,7 @@ Here's what PromptGate posts on your pull requests:
 🎲 **1 flaky case(s)** (non-deterministic outputs)
 
 **Total Cost:** $0.0056
+**Judge Calibration:** 85.0% agreement (5 labeled cases)
 
 _Evaluated at 10/26/2026, 7:30:15 PM_
 ```
@@ -62,6 +65,14 @@ When a regression is detected, the check fails and the comment includes:
 - Side-by-side output comparison for regressed cases
 - Judge reasoning for why base was preferred
 - Critical failure indicators
+
+## 🌐 Live Services
+
+- **Dashboard:** https://promptgate-dashboard.pages.dev
+- **API:** https://promptgate-api.ekansh-gupta.workers.dev
+- **API Health:** https://promptgate-api.ekansh-gupta.workers.dev/health
+
+**Note:** v1 dashboard OAuth is `read:user` scope only, so it supports **public repositories only**. For private repositories, use BYOK (bring your own key) mode in the GitHub Action. Full private repository support with dashboard access is planned for v2.
 
 ---
 

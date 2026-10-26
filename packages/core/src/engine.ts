@@ -21,6 +21,7 @@ import {
   computeContextFreeScore,
   runBidirectionalJudge,
 } from './scoring.js';
+import { loadCalibrationLabels, calculateJudgeAgreement } from './calibration.js';
 
 export interface EngineOptions {
   configPath: string;
@@ -77,6 +78,47 @@ export class PromptGateEngine {
         r.passRateDelta >= -this.config.scoring.passRateThreshold
     );
 
+    let calibrationAgreement: number | undefined;
+    let calibrationSampleSize: number | undefined;
+
+    try {
+      const labelsPath = path.join(path.dirname(this.options.configPath), 'calibration-labels.yaml');
+      const labels = await loadCalibrationLabels(labelsPath);
+      
+      if (labels.length > 0) {
+        // Transform results into format expected by calculateJudgeAgreement
+        const judgeResults: Array<{
+          caseName: string;
+          promptName: string;
+          output: string;
+          judgePreferred: 'base' | 'head' | 'tie';
+          isHead: boolean;
+        }> = [];
+
+        for (const promptResult of results) {
+          for (const caseResult of promptResult.caseResults) {
+            if (caseResult.judgeResult) {
+              judgeResults.push({
+                caseName: caseResult.caseName || '',
+                promptName: promptResult.promptName,
+                output: caseResult.headOutput,
+                judgePreferred: caseResult.judgeResult.preferredVersion,
+                isHead: true,
+              });
+            }
+          }
+        }
+
+        const agreement = calculateJudgeAgreement(labels, judgeResults);
+        if (agreement > 0) {
+          calibrationAgreement = agreement * 100; // Convert to percentage
+          calibrationSampleSize = judgeResults.length;
+        }
+      }
+    } catch {
+      // Calibration labels optional
+    }
+
     return {
       timestamp: new Date().toISOString(),
       baseRef: this.options.baseRef,
@@ -84,6 +126,8 @@ export class PromptGateEngine {
       prompts: results,
       passed,
       totalCost,
+      calibrationAgreement,
+      calibrationSampleSize,
     };
   }
 
