@@ -17,6 +17,6 @@ prompts:
     temperature: 0.3
 
 scoring:
-  runs: 3
+  runs: 1
   passRateThreshold: 0.1
   enableCache: true

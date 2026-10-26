@@ -149042,41 +149042,84 @@ var MODEL_FALLBACKS = [
   "gemini-1.5-flash",
   "gemini-flash-latest"
 ];
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+function parseRetryDelayMs(message) {
+  const match = message.match(/"retryDelay":\s*"(\d+)s"/);
+  if (match) {
+    return (Number(match[1]) + 1) * 1e3;
+  }
+  return 15e3;
+}
 var GeminiProvider = class extends BaseProvider {
   name = "gemini";
   apiKey;
   baseUrl;
   resolvedModel = null;
+  lastCallAt = 0;
+  minIntervalMs;
   constructor(config) {
     super();
     this.apiKey = config.apiKey;
     this.baseUrl = config.baseUrl || "https://generativelanguage.googleapis.com/v1beta";
+    const fromEnv = Number(process.env.GEMINI_MIN_INTERVAL_MS);
+    this.minIntervalMs = Number.isFinite(fromEnv) && fromEnv >= 0 ? fromEnv : 12500;
   }
   async call(params) {
     const startTime = Date.now();
     const modelsToTry = this.resolvedModel ? [this.resolvedModel] : [params.model, ...MODEL_FALLBACKS.filter((m) => m !== params.model)];
     let lastError = null;
     for (const model of modelsToTry) {
-      try {
-        const result = await this.callModel(model, params, startTime);
-        this.resolvedModel = model;
-        if (model !== params.model) {
-          console.warn(`Gemini model ${params.model} unavailable; using ${model}`);
-        }
-        return result;
-      } catch (error) {
-        lastError = error;
-        const statusMatch = String(error.message).match(/Gemini API error \((\d+)\)/);
-        const status = statusMatch ? Number(statusMatch[1]) : 0;
-        const retryable = status === 404 || status === 400 || status === 429 || status >= 500;
-        if (!retryable || modelsToTry.indexOf(model) === modelsToTry.length - 1) {
+      for (let attempt = 0; attempt < 4; attempt++) {
+        try {
+          await this.throttle();
+          const result = await this.callModel(model, params, startTime);
+          this.resolvedModel = model;
+          if (model !== params.model) {
+            console.warn(
+              `Gemini model ${params.model} unavailable; using ${model}`
+            );
+          }
+          return result;
+        } catch (error) {
+          lastError = error;
+          const statusMatch = String(error.message).match(
+            /Gemini API error \((\d+)\)/
+          );
+          const status = statusMatch ? Number(statusMatch[1]) : 0;
+          if (status === 429) {
+            const delay2 = parseRetryDelayMs(error.message);
+            console.warn(
+              `Gemini rate limited (${model}); waiting ${Math.round(delay2 / 1e3)}s`
+            );
+            await sleep(delay2);
+            continue;
+          }
+          const tryNextModel = status === 404 || status === 400;
+          if (tryNextModel) {
+            console.warn(
+              `Gemini model ${model} failed (${status}); trying fallback`
+            );
+            break;
+          }
           console.error(`Gemini call failed (${model}): ${error.message}`);
           return this.handleError(error);
         }
-        console.warn(`Gemini model ${model} failed (${status || "error"}); trying fallback`);
       }
     }
+    console.error(
+      `Gemini call failed after retries: ${lastError?.message || "unknown error"}`
+    );
     return this.handleError(lastError || new Error("Gemini request failed"));
+  }
+  async throttle() {
+    if (this.minIntervalMs <= 0) return;
+    const elapsed = Date.now() - this.lastCallAt;
+    if (this.lastCallAt && elapsed < this.minIntervalMs) {
+      await sleep(this.minIntervalMs - elapsed);
+    }
+    this.lastCallAt = Date.now();
   }
   async callModel(model, params, startTime) {
     const contents = [];
@@ -149094,10 +149137,6 @@ var GeminiProvider = class extends BaseProvider {
       role: "user",
       parts: [{ text: params.prompt }]
     });
-    const requestBody = {
-      contents,
-      generationConfig: {}
-    };
     const generationConfig = {};
     if (params.temperature !== void 0) {
       generationConfig.temperature = params.temperature;
@@ -149105,7 +149144,6 @@ var GeminiProvider = class extends BaseProvider {
     if (params.maxTokens) {
       generationConfig.maxOutputTokens = params.maxTokens;
     }
-    requestBody.generationConfig = generationConfig;
     const response = await fetch(
       `${this.baseUrl}/models/${model}:generateContent?key=${this.apiKey}`,
       {
@@ -149114,7 +149152,7 @@ var GeminiProvider = class extends BaseProvider {
           "Content-Type": "application/json",
           "User-Agent": "PromptGate/1.0"
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({ contents, generationConfig })
       }
     );
     const latencyMs = Date.now() - startTime;
