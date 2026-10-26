@@ -109,11 +109,11 @@ export async function runBidirectionalJudge(
     runPairwiseJudge(provider, rubric, promptText, input, headOutput, baseOutput),
   ]);
 
-  const reverseMapping = {
+  const reverseMapping: Record<string, 'base' | 'head' | 'tie'> = {
     base: 'head',
     head: 'base',
     tie: 'tie',
-  } as const;
+  };
 
   const judge2Reversed = reverseMapping[judge2.preferredVersion];
 

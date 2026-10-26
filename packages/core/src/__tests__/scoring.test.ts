@@ -67,16 +67,22 @@ describe('computeContextFreeScore', () => {
 
 describe('runBidirectionalJudge', () => {
   it('should agree when both judges pick the same', async () => {
+    let callCount = 0;
     const mockProvider: Provider = {
       name: 'mock',
-      call: vi.fn().mockResolvedValue({
-        content: JSON.stringify({
-          preferred: 'B',
-          reasoning: 'B is better',
-          confidence: 0.8,
-        }),
-        latencyMs: 100,
-        cost: 0.001,
+      call: vi.fn().mockImplementation(async () => {
+        callCount++;
+        // First call: (base, head) -> B means head
+        // Second call: (head, base) -> A means head (reversed)
+        return {
+          content: JSON.stringify({
+            preferred: callCount === 1 ? 'B' : 'A',
+            reasoning: 'This is better',
+            confidence: 0.8,
+          }),
+          latencyMs: 100,
+          cost: 0.001,
+        };
       }),
       estimateCost: () => 0.001,
     };
@@ -147,6 +153,6 @@ describe('runBidirectionalJudge', () => {
     );
 
     expect(result.preferredVersion).toBe('tie');
-    expect(result.confidence).toBe(0.5);
+    expect(result.confidence).toBe(0);
   });
 });
