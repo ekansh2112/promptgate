@@ -66,6 +66,7 @@ export interface CaseResult {
   judgeResult?: JudgeResult;
   flaky: boolean;
   runs: number;
+  providerError?: string;
 }
 
 export interface PromptResult {
@@ -97,6 +98,7 @@ export interface EvalReport {
   totalCost: number;
   calibrationAgreement?: number;
   calibrationSampleSize?: number;
+  evaluationError?: string;
 }
 
 export interface CacheEntry {

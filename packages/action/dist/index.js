@@ -148398,6 +148398,8 @@ import fs2 from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import fs from "fs/promises";
+var DEFAULT_TARGET_MODEL = "gemini-3.5-flash-lite";
+var DEFAULT_JUDGE_MODEL = "gemini-3.5-flash";
 var AssertionSchema = external_exports.discriminatedUnion("type", [
   external_exports.object({
     type: external_exports.literal("contains"),
@@ -148440,7 +148442,7 @@ var TestSetSchema = external_exports.array(TestCaseSchema);
 var PromptConfigSchema = external_exports.object({
   name: external_exports.string(),
   path: external_exports.string(),
-  model: external_exports.string(),
+  model: external_exports.string().default(DEFAULT_TARGET_MODEL),
   variables: external_exports.array(external_exports.string()).default([]),
   testSet: external_exports.string(),
   rubric: external_exports.string().optional(),
@@ -148451,9 +148453,10 @@ var PromptConfigSchema = external_exports.object({
 var PromptGateConfigSchema = external_exports.object({
   prompts: external_exports.array(PromptConfigSchema),
   scoring: external_exports.object({
-    runs: external_exports.number().positive().default(3),
+    runs: external_exports.number().positive().default(1),
     passRateThreshold: external_exports.number().min(0).max(1).default(0.1),
-    enableCache: external_exports.boolean().default(true)
+    enableCache: external_exports.boolean().default(true),
+    judgeModel: external_exports.string().default(DEFAULT_JUDGE_MODEL)
   }).default({}),
   providers: external_exports.object({
     gemini: external_exports.object({
@@ -148615,6 +148618,11 @@ function deepEqual(a, b) {
   }
   return true;
 }
+function parseJudgeResponse(content) {
+  const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const raw = (fenced ? fenced[1] : content).trim();
+  return JSON.parse(raw);
+}
 function computeContextFreeScore(response) {
   let validJson = false;
   try {
@@ -148632,7 +148640,7 @@ function computeContextFreeScore(response) {
     cost: response.cost
   };
 }
-async function runPairwiseJudge(provider, rubric, promptText, input, baseOutput, headOutput) {
+async function runPairwiseJudge(provider, rubric, promptText, input, baseOutput, headOutput, judgeModel = DEFAULT_JUDGE_MODEL) {
   const judgePrompt = `You are evaluating two versions of an LLM prompt output. Your task is to determine which version is better or if they are equal.
 
 RUBRIC:
@@ -148664,14 +148672,14 @@ Respond in JSON format:
 }`;
   try {
     const response = await provider.call({
-      model: "gemini-2.0-flash-exp",
+      model: judgeModel,
       prompt: judgePrompt,
       temperature: 0.3
     });
     if (response.error || response.refusal) {
-      throw new Error("Judge call failed");
+      throw new Error(response.error || "Judge call failed");
     }
-    const parsed = JSON.parse(response.content);
+    const parsed = parseJudgeResponse(response.content);
     return {
       preferredVersion: parsed.preferred === "A" ? "base" : parsed.preferred === "B" ? "head" : "tie",
       reasoning: parsed.reasoning || "",
@@ -148685,11 +148693,25 @@ Respond in JSON format:
     };
   }
 }
-async function runBidirectionalJudge(provider, rubric, promptText, input, baseOutput, headOutput) {
-  const [judge1, judge2] = await Promise.all([
-    runPairwiseJudge(provider, rubric, promptText, input, baseOutput, headOutput),
-    runPairwiseJudge(provider, rubric, promptText, input, headOutput, baseOutput)
-  ]);
+async function runBidirectionalJudge(provider, rubric, promptText, input, baseOutput, headOutput, judgeModel = DEFAULT_JUDGE_MODEL) {
+  const judge1 = await runPairwiseJudge(
+    provider,
+    rubric,
+    promptText,
+    input,
+    baseOutput,
+    headOutput,
+    judgeModel
+  );
+  const judge2 = await runPairwiseJudge(
+    provider,
+    rubric,
+    promptText,
+    input,
+    headOutput,
+    baseOutput,
+    judgeModel
+  );
   const reverseMapping = {
     base: "head",
     head: "base",
@@ -148766,6 +148788,15 @@ var PromptGateEngine = class {
     const configContent = await fs2.readFile(configPath, "utf-8");
     const rawConfig = import_yaml.default.parse(configContent);
     this.config = PromptGateConfigSchema.parse(rawConfig);
+    if (this.options.modelOverride) {
+      this.config.prompts = this.config.prompts.map((p) => ({
+        ...p,
+        model: this.options.modelOverride
+      }));
+    }
+    if (this.options.judgeModel) {
+      this.config.scoring.judgeModel = this.options.judgeModel;
+    }
     if (this.config.scoring.enableCache !== void 0) {
       this.cache = new ResponseCache(this.config.scoring.enableCache);
     }
@@ -148815,15 +148846,17 @@ var PromptGateEngine = class {
       }
     } catch {
     }
+    const evaluationError = collectEvaluationError(results);
     return {
       timestamp: (/* @__PURE__ */ new Date()).toISOString(),
       baseRef: this.options.baseRef,
       headRef: this.options.headRef,
       prompts: results,
-      passed,
+      passed: evaluationError ? false : passed,
       totalCost,
       calibrationAgreement,
-      calibrationSampleSize
+      calibrationSampleSize,
+      evaluationError
     };
   }
   getPromptsToTest() {
@@ -148950,7 +148983,8 @@ var PromptGateEngine = class {
         headPromptText,
         testCase.inputs,
         baseResponse.content,
-        headResponse.content
+        headResponse.content,
+        this.options.judgeModel || this.config.scoring.judgeModel
       );
     }
     return {
@@ -148965,7 +148999,8 @@ var PromptGateEngine = class {
       headAssertions,
       judgeResult,
       flaky,
-      runs
+      runs,
+      providerError: baseResponse.error || headResponse.error
     };
   }
   async callLLM(config, prompt) {
@@ -149023,6 +149058,22 @@ var PromptGateEngine = class {
     return TestSetSchema.parse(parsed);
   }
 };
+function collectEvaluationError(results) {
+  if (results.length === 0) {
+    return void 0;
+  }
+  const cases = results.flatMap((r) => r.caseResults);
+  if (cases.length === 0) {
+    return void 0;
+  }
+  const allErrored = cases.every(
+    (c) => c.baseContextFree.error && c.headContextFree.error
+  );
+  if (!allErrored) {
+    return void 0;
+  }
+  return cases.find((c) => c.providerError)?.providerError || "All test cases failed with LLM errors";
+}
 var BaseProvider = class {
   estimateTokens(text) {
     return Math.ceil(text.length / 4);
@@ -149036,7 +149087,6 @@ var BaseProvider = class {
     };
   }
 };
-var MODEL_FALLBACKS = [];
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -149045,13 +149095,12 @@ function parseRetryDelayMs(message) {
   if (match) {
     return (Number(match[1]) + 1) * 1e3;
   }
-  return 15e3;
+  return 8e3;
 }
 var GeminiProvider = class extends BaseProvider {
   name = "gemini";
   apiKey;
   baseUrl;
-  resolvedModel = null;
   lastCallAt = 0;
   minIntervalMs;
   constructor(config) {
@@ -149059,64 +149108,36 @@ var GeminiProvider = class extends BaseProvider {
     this.apiKey = config.apiKey;
     this.baseUrl = config.baseUrl || "https://generativelanguage.googleapis.com/v1beta";
     const fromEnv = Number(process.env.GEMINI_MIN_INTERVAL_MS);
-    this.minIntervalMs = Number.isFinite(fromEnv) && fromEnv >= 0 ? fromEnv : 4e3;
+    this.minIntervalMs = Number.isFinite(fromEnv) && fromEnv >= 0 ? fromEnv : 1500;
   }
   async call(params) {
     const startTime = Date.now();
-    const modelsToTry = this.resolvedModel ? [this.resolvedModel] : [params.model, ...MODEL_FALLBACKS.filter((m) => m !== params.model)];
     let lastError = null;
-    for (const model of modelsToTry) {
-      for (let attempt = 0; attempt < 4; attempt++) {
-        try {
-          await this.throttle();
-          const result = await this.callModel(model, params, startTime);
-          this.resolvedModel = model;
-          if (model !== params.model) {
-            console.warn(
-              `Gemini model ${params.model} unavailable; using ${model}`
-            );
-          }
-          return result;
-        } catch (error) {
-          lastError = error;
-          const statusMatch = String(error.message).match(
-            /Gemini API error \((\d+)\)/
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await this.throttle();
+        return await this.callModel(params.model, params, startTime);
+      } catch (error) {
+        lastError = error;
+        const statusMatch = String(error.message).match(
+          /Gemini API error \((\d+)\)/
+        );
+        const status = statusMatch ? Number(statusMatch[1]) : 0;
+        const daily = /per day|requests per day|retry in \d+h/i.test(
+          error.message
+        );
+        if (status === 429 && !daily && attempt < 2) {
+          const delay2 = Math.min(parseRetryDelayMs(error.message), 15e3);
+          console.warn(
+            `Gemini rate limited (${params.model}); waiting ${Math.round(delay2 / 1e3)}s`
           );
-          const status = statusMatch ? Number(statusMatch[1]) : 0;
-          if (status === 429) {
-            const daily = /per day|requests per day|retry in \d+h/i.test(error.message);
-            if (daily) {
-              console.error(
-                `Gemini daily quota exceeded (${model}). Add a paid key or wait.`
-              );
-              return this.handleError(error);
-            }
-            if (attempt < 3) {
-              const delay2 = Math.min(parseRetryDelayMs(error.message), 2e4);
-              console.warn(
-                `Gemini rate limited (${model}); waiting ${Math.round(delay2 / 1e3)}s`
-              );
-              await sleep(delay2);
-              continue;
-            }
-            console.error(`Gemini still rate limited after retries (${model})`);
-            return this.handleError(error);
-          }
-          const tryNextModel = status === 404 || status === 400;
-          if (tryNextModel) {
-            console.warn(
-              `Gemini model ${model} failed (${status}); trying fallback`
-            );
-            break;
-          }
-          console.error(`Gemini call failed (${model}): ${error.message}`);
-          return this.handleError(error);
+          await sleep(delay2);
+          continue;
         }
+        console.error(`Gemini call failed (${params.model}): ${error.message}`);
+        return this.handleError(error);
       }
     }
-    console.error(
-      `Gemini call failed after retries: ${lastError?.message || "unknown error"}`
-    );
     return this.handleError(lastError || new Error("Gemini request failed"));
   }
   async throttle() {
@@ -149176,28 +149197,20 @@ var GeminiProvider = class extends BaseProvider {
         refusal: true
       };
     }
-    const candidate = data.candidates[0];
-    const text = candidate.content?.parts?.[0]?.text || "";
+    const text = data.candidates[0].content?.parts?.[0]?.text || "";
     const inputTokens = this.estimateTokens(params.prompt);
     const outputTokens = this.estimateTokens(text);
     const cost = this.estimateCost(model, inputTokens, outputTokens);
-    return {
-      content: text,
-      latencyMs,
-      cost
-    };
+    return { content: text, latencyMs, cost };
   }
   estimateCost(model, inputTokens, outputTokens) {
     const rates = {
-      "gemini-2.0-flash-exp": { input: 0, output: 0 },
+      "gemini-3.5-flash-lite": { input: 0.1, output: 0.4 },
+      "gemini-3.5-flash": { input: 0.15, output: 0.6 },
       "gemini-2.0-flash": { input: 0.1, output: 0.4 },
-      "gemini-2.5-flash": { input: 0.15, output: 0.6 },
-      "gemini-1.5-flash": { input: 0.075, output: 0.3 },
-      "gemini-1.5-flash-8b": { input: 0.0375, output: 0.15 },
-      "gemini-flash-latest": { input: 0.1, output: 0.4 },
-      "gemini-1.5-pro": { input: 1.25, output: 5 }
+      "gemini-1.5-flash": { input: 0.075, output: 0.3 }
     };
-    const rate = rates[model] || rates["gemini-2.0-flash"];
+    const rate = rates[model] || rates["gemini-3.5-flash-lite"];
     return (inputTokens * rate.input + outputTokens * rate.output) / 1e6;
   }
 };
@@ -149337,6 +149350,113 @@ var ProxyProvider = class extends BaseProvider {
   }
 };
 
+// src/comment.ts
+function formatPRComment(report) {
+  let comment = `<!-- promptgate-report -->
+
+`;
+  if (report.evaluationError) {
+    comment += `## \u274C PromptGate Evaluation Error
+
+`;
+    comment += `**evaluation error:** ${report.evaluationError}
+
+`;
+    comment += `Every test case failed before scoring. This is not a prompt regression \u2014 the LLM provider returned errors for all cases.
+
+`;
+    comment += `**Base:** \`${report.baseRef.slice(0, 7)}\` | **Head:** \`${report.headRef.slice(0, 7)}\`
+`;
+    comment += `
+_Evaluated at ${new Date(report.timestamp).toLocaleString()}_
+`;
+    return comment;
+  }
+  const emoji = report.passed ? "\u2705" : "\u274C";
+  const status = report.passed ? "PASSED" : "FAILED";
+  comment += `## ${emoji} PromptGate Evaluation ${status}
+
+`;
+  comment += `**Base:** \`${report.baseRef.slice(0, 7)}\` | **Head:** \`${report.headRef.slice(0, 7)}\`
+
+`;
+  for (const promptResult of report.prompts) {
+    const delta = promptResult.passRateDelta;
+    const deltaStr = delta >= 0 ? `+${(delta * 100).toFixed(1)}%` : `${(delta * 100).toFixed(1)}%`;
+    const deltaEmoji = delta < -0.05 ? "\u{1F4C9}" : delta > 0.05 ? "\u{1F4C8}" : "\u27A1\uFE0F";
+    comment += `### ${promptResult.promptName}
+
+`;
+    comment += `| Metric | Base | Head | Delta |
+`;
+    comment += `|--------|------|------|-------|
+`;
+    comment += `| Pass Rate | ${(promptResult.basePassRate * 100).toFixed(1)}% | ${(promptResult.headPassRate * 100).toFixed(1)}% | ${deltaEmoji} ${deltaStr} |
+`;
+    comment += `| Avg Latency | ${promptResult.avgLatencyBase.toFixed(0)}ms | ${promptResult.avgLatencyHead.toFixed(0)}ms | ${(promptResult.avgLatencyHead - promptResult.avgLatencyBase).toFixed(0)}ms |
+`;
+    comment += `| Cost | $${promptResult.totalCostBase.toFixed(4)} | $${promptResult.totalCostHead.toFixed(4)} | $${(promptResult.totalCostHead - promptResult.totalCostBase).toFixed(4)} |
+`;
+    if (promptResult.criticalFailures > 0) {
+      comment += `
+\u26A0\uFE0F **${promptResult.criticalFailures} critical failure(s)**
+`;
+    }
+    if (promptResult.flakyCount > 0) {
+      comment += `
+\u{1F3B2} **${promptResult.flakyCount} flaky case(s)** (non-deterministic outputs)
+`;
+    }
+    const regressedCases = promptResult.caseResults.filter(
+      (c) => c.judgeResult?.preferredVersion === "base" || !c.baseContextFree.error && c.headContextFree.error || c.baseAssertions.every((a) => a.passed) && c.headAssertions.some((a) => !a.passed)
+    );
+    const casesToShow = regressedCases.length > 0 ? regressedCases.slice(0, 3) : promptResult.caseResults.slice(0, 2);
+    if (casesToShow.length > 0) {
+      const heading = regressedCases.length > 0 ? `\u{1F50D} Regressed Cases (${regressedCases.length})` : `\u{1F50D} Sample Cases (${casesToShow.length})`;
+      comment += `
+<details>
+<summary>${heading}</summary>
+
+`;
+      for (const caseResult of casesToShow) {
+        comment += `**${caseResult.caseName || "Unnamed"}**${caseResult.critical ? " \u{1F534} CRITICAL" : ""}
+
+`;
+        comment += `Base: \`${truncate(caseResult.baseOutput, 180)}\`
+
+`;
+        comment += `Head: \`${truncate(caseResult.headOutput, 180)}\`
+
+`;
+        if (caseResult.judgeResult) {
+          comment += `Judge (${caseResult.judgeResult.preferredVersion}): ${caseResult.judgeResult.reasoning}
+
+`;
+        }
+      }
+      comment += `</details>
+
+`;
+    }
+  }
+  comment += `
+**Total Cost:** $${report.totalCost.toFixed(4)}
+`;
+  if (report.calibrationAgreement !== void 0 && report.calibrationSampleSize !== void 0) {
+    comment += `
+**Judge Calibration:** ${report.calibrationAgreement.toFixed(1)}% agreement (${report.calibrationSampleSize} labeled cases)
+`;
+  }
+  comment += `
+_Evaluated at ${new Date(report.timestamp).toLocaleString()}_
+`;
+  return comment;
+}
+function truncate(str, maxLen) {
+  if (str.length <= maxLen) return str;
+  return str.slice(0, maxLen) + "...";
+}
+
 // src/index.ts
 async function run() {
   try {
@@ -149352,11 +149472,15 @@ async function run() {
     const headRef = core.getInput("head-ref") || github.context.sha;
     const uploadResults = core.getBooleanInput("upload-results") || false;
     const apiUrl = core.getInput("api-url") || "https://promptgate-api.ekansh-gupta.workers.dev";
+    const model = core.getInput("model") || DEFAULT_TARGET_MODEL;
+    const judgeModel = core.getInput("judge-model") || DEFAULT_JUDGE_MODEL;
     const workspacePath = process.env.GITHUB_WORKSPACE || process.cwd();
     core.info(`Starting PromptGate evaluation...`);
     core.info(`Config: ${configPath}`);
     core.info(`Base: ${baseRef}`);
     core.info(`Head: ${headRef}`);
+    core.info(`Target model: ${model}`);
+    core.info(`Judge model: ${judgeModel}`);
     const changedFiles = await getChangedFiles(baseRef, headRef);
     core.info(`Changed files: ${changedFiles.length}`);
     const provider = await createProvider(apiUrl);
@@ -149365,7 +149489,9 @@ async function run() {
       provider,
       baseRef,
       headRef,
-      changedFiles
+      changedFiles,
+      modelOverride: model,
+      judgeModel
     });
     const report = await engine.run();
     await fs3.writeFile(
@@ -149385,15 +149511,8 @@ async function run() {
     if (uploadResults && process.env.ACTIONS_ID_TOKEN_REQUEST_URL) {
       await uploadToAPI(report, apiUrl);
     }
-    const allProviderErrors = report.prompts.length > 0 && report.prompts.every(
-      (p) => p.caseResults.every(
-        (c) => c.baseContextFree.error && c.headContextFree.error
-      )
-    );
-    if (allProviderErrors) {
-      core.warning(
-        "LLM provider failed for every case (quota, auth, or outage). Not failing the check \u2014 this is infrastructure, not a prompt regression."
-      );
+    if (report.evaluationError) {
+      core.setFailed(`PromptGate evaluation error: ${report.evaluationError}`);
     } else if (!report.passed) {
       core.setFailed("PromptGate evaluation failed: regressions detected");
     } else {
@@ -149469,104 +149588,6 @@ async function postPRComment(report) {
       body: comment
     });
   }
-}
-function formatPRComment(report) {
-  const emoji = report.passed ? "\u2705" : "\u274C";
-  const status = report.passed ? "PASSED" : "FAILED";
-  let comment = `<!-- promptgate-report -->
-
-`;
-  comment += `## ${emoji} PromptGate Evaluation ${status}
-
-`;
-  comment += `**Base:** \`${report.baseRef.slice(0, 7)}\` | **Head:** \`${report.headRef.slice(0, 7)}\`
-
-`;
-  for (const promptResult of report.prompts) {
-    const delta = promptResult.passRateDelta;
-    const deltaStr = delta >= 0 ? `+${(delta * 100).toFixed(1)}%` : `${(delta * 100).toFixed(1)}%`;
-    const deltaEmoji = delta < -0.05 ? "\u{1F4C9}" : delta > 0.05 ? "\u{1F4C8}" : "\u27A1\uFE0F";
-    comment += `### ${promptResult.promptName}
-
-`;
-    comment += `| Metric | Base | Head | Delta |
-`;
-    comment += `|--------|------|------|-------|
-`;
-    comment += `| Pass Rate | ${(promptResult.basePassRate * 100).toFixed(1)}% | ${(promptResult.headPassRate * 100).toFixed(1)}% | ${deltaEmoji} ${deltaStr} |
-`;
-    comment += `| Avg Latency | ${promptResult.avgLatencyBase.toFixed(0)}ms | ${promptResult.avgLatencyHead.toFixed(0)}ms | ${(promptResult.avgLatencyHead - promptResult.avgLatencyBase).toFixed(0)}ms |
-`;
-    comment += `| Cost | $${promptResult.totalCostBase.toFixed(4)} | $${promptResult.totalCostHead.toFixed(4)} | $${(promptResult.totalCostHead - promptResult.totalCostBase).toFixed(4)} |
-`;
-    if (promptResult.criticalFailures > 0) {
-      comment += `
-\u26A0\uFE0F **${promptResult.criticalFailures} critical failure(s)**
-`;
-    }
-    const errorCases = promptResult.caseResults.filter(
-      (c) => c.baseContextFree.error || c.headContextFree.error
-    );
-    if (errorCases.length > 0 && errorCases.length === promptResult.totalCases) {
-      comment += `
-\u26A0\uFE0F **All ${errorCases.length} test case(s) failed with LLM errors**
-`;
-      comment += `Check action logs for details.
-`;
-    }
-    if (promptResult.flakyCount > 0) {
-      comment += `
-\u{1F3B2} **${promptResult.flakyCount} flaky case(s)** (non-deterministic outputs)
-`;
-    }
-    const regressedCases = promptResult.caseResults.filter(
-      (c) => c.judgeResult?.preferredVersion === "base" || !c.baseContextFree.error && c.headContextFree.error || c.baseAssertions.every((a) => a.passed) && c.headAssertions.some((a) => !a.passed)
-    );
-    const casesToShow = regressedCases.length > 0 ? regressedCases.slice(0, 3) : promptResult.caseResults.slice(0, 2);
-    if (casesToShow.length > 0) {
-      const heading = regressedCases.length > 0 ? `\u{1F50D} Regressed Cases (${regressedCases.length})` : `\u{1F50D} Sample Cases (${casesToShow.length})`;
-      comment += `
-<details>
-<summary>${heading}</summary>
-
-`;
-      for (const caseResult of casesToShow) {
-        comment += `**${caseResult.caseName || "Unnamed"}**${caseResult.critical ? " \u{1F534} CRITICAL" : ""}
-
-`;
-        comment += `Base: \`${truncate(caseResult.baseOutput, 180)}\`
-
-`;
-        comment += `Head: \`${truncate(caseResult.headOutput, 180)}\`
-
-`;
-        if (caseResult.judgeResult) {
-          comment += `Judge (${caseResult.judgeResult.preferredVersion}): ${caseResult.judgeResult.reasoning}
-
-`;
-        }
-      }
-      comment += `</details>
-
-`;
-    }
-  }
-  comment += `
-**Total Cost:** $${report.totalCost.toFixed(4)}
-`;
-  if (report.calibrationAgreement !== void 0 && report.calibrationSampleSize !== void 0) {
-    comment += `
-**Judge Calibration:** ${report.calibrationAgreement.toFixed(1)}% agreement (${report.calibrationSampleSize} labeled cases)
-`;
-  }
-  comment += `
-_Evaluated at ${new Date(report.timestamp).toLocaleString()}_
-`;
-  return comment;
-}
-function truncate(str, maxLen) {
-  if (str.length <= maxLen) return str;
-  return str.slice(0, maxLen) + "...";
 }
 async function uploadToAPI(report, apiUrl) {
   try {

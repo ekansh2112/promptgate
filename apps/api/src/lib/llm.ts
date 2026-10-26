@@ -91,12 +91,11 @@ export function estimateCost(
   outputTokens: number
 ): number {
   const rates: Record<string, { input: number; output: number }> = {
-    'gemini-2.0-flash-exp': { input: 0, output: 0 },
-    'gemini-1.5-flash': { input: 0.075, output: 0.3 },
-    'gemini-1.5-flash-8b': { input: 0.0375, output: 0.15 },
+    'gemini-3.5-flash-lite': { input: 0.1, output: 0.4 },
+    'gemini-3.5-flash': { input: 0.15, output: 0.6 },
   };
 
-  const rate = rates[model] || rates['gemini-1.5-flash'];
+  const rate = rates[model] || rates['gemini-3.5-flash-lite'];
   return (inputTokens * rate.input + outputTokens * rate.output) / 1_000_000;
 }
 

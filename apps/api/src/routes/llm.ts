@@ -38,7 +38,7 @@ app.post('/v1/llm', async (c) => {
     if (!validateModel(model)) {
       return c.json(
         {
-          error: `Model ${model} not allowed in hosted mode. Allowed models: gemini-2.0-flash, gemini-2.5-flash, gemini-1.5-flash, gemini-1.5-flash-8b. For other models, add your own API key (BYOK).`,
+          error: `Model ${model} not allowed in hosted mode. Allowed models: gemini-3.5-flash-lite, gemini-3.5-flash. For other models, add your own API key (BYOK).`,
         },
         400
       );

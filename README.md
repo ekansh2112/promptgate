@@ -124,6 +124,8 @@ jobs:
       - uses: ekansh2112/promptgate@v1
         with:
           config: promptgate.yaml
+          model: gemini-3.5-flash-lite
+          judge-model: gemini-3.5-flash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # BYOK (recommended for production):
@@ -139,7 +141,7 @@ jobs:
 prompts:
   - name: "User greeting"
     path: "prompts/greeting.txt"
-    model: "gemini-2.0-flash-exp"
+    model: "gemini-3.5-flash-lite"
     variables: ["user_name"]
     testSet: "tests/greeting.yaml"
     rubric: "Should be friendly, personalized, and under 50 words."
@@ -188,7 +190,7 @@ PromptGate will:
 prompts:
   - name: "Human-readable name"
     path: "path/to/prompt.txt"          # Prompt template file
-    model: "gemini-2.0-flash-exp"        # LLM model to use
+    model: "gemini-3.5-flash-lite"       # LLM model to use (override with action input `model`)
     variables: ["var1", "var2"]          # Variables in {{brackets}}
     testSet: "path/to/tests.yaml"        # Test cases file
     rubric: "Quality criteria..."        # Optional: for LLM judge
@@ -228,9 +230,10 @@ prompts:
 
 ```yaml
 scoring:
-  runs: 3                       # How many times to run each test (for flakiness)
+  runs: 1                       # How many times to run each test (for flakiness)
   passRateThreshold: 0.1        # Max allowed pass rate drop (0.1 = 10%)
   enableCache: true             # Cache LLM responses by hash
+  judgeModel: gemini-3.5-flash  # Pairwise judge (override with action input `judge-model`)
 ```
 
 ---
@@ -269,7 +272,7 @@ Judge prompt includes:
 - Both outputs to compare
 
 ### 4️⃣ Flakiness Detection
-Each test runs **N times** (default 3):
+Each test runs **N times** (default 1):
 - If outputs differ across runs → **flaky** 🎲
 - High flakiness = unreliable prompt (temperature too high, underspecified task)
 - Reported separately so you can investigate
@@ -293,7 +296,7 @@ You can label outputs as "good" or "bad" (via dashboard or YAML file). PromptGat
 If no API key is provided, PromptGate routes LLM calls through `promptgate-api.ekansh-gupta.workers.dev`:
 - ✅ Zero setup — just add the Action
 - ✅ Daily quotas: 1,000 calls, 500k tokens, $50 global budget
-- ✅ Only cheap models allowed (`gemini-2.0-flash-exp`, `gemini-1.5-flash`, `gemini-1.5-flash-8b`)
+- ✅ Only cheap models allowed (`gemini-3.5-flash-lite`, `gemini-3.5-flash`)
 - ✅ Response caching (saves quota)
 - ⚠️ **Google's free tier policy**: prompts may be used to improve Gemini
 - ⚠️ Fork PRs can't use hosted mode (no OIDC token)

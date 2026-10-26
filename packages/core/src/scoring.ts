@@ -4,6 +4,17 @@ import type {
   JudgeResult,
   Provider,
 } from './types.js';
+import { DEFAULT_JUDGE_MODEL } from './models.js';
+
+function parseJudgeResponse(content: string): {
+  preferred: string;
+  reasoning: string;
+  confidence: number;
+} {
+  const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const raw = (fenced ? fenced[1] : content).trim();
+  return JSON.parse(raw);
+}
 
 export function computeContextFreeScore(
   response: LLMResponse
@@ -32,7 +43,8 @@ export async function runPairwiseJudge(
   promptText: string,
   input: Record<string, any>,
   baseOutput: string,
-  headOutput: string
+  headOutput: string,
+  judgeModel: string = DEFAULT_JUDGE_MODEL
 ): Promise<JudgeResult> {
   const judgePrompt = `You are evaluating two versions of an LLM prompt output. Your task is to determine which version is better or if they are equal.
 
@@ -66,16 +78,16 @@ Respond in JSON format:
 
   try {
     const response = await provider.call({
-      model: 'gemini-2.0-flash-exp',
+      model: judgeModel,
       prompt: judgePrompt,
       temperature: 0.3,
     });
 
     if (response.error || response.refusal) {
-      throw new Error('Judge call failed');
+      throw new Error(response.error || 'Judge call failed');
     }
 
-    const parsed = JSON.parse(response.content);
+    const parsed = parseJudgeResponse(response.content);
     
     return {
       preferredVersion:
@@ -102,12 +114,27 @@ export async function runBidirectionalJudge(
   promptText: string,
   input: Record<string, any>,
   baseOutput: string,
-  headOutput: string
+  headOutput: string,
+  judgeModel: string = DEFAULT_JUDGE_MODEL
 ): Promise<JudgeResult> {
-  const [judge1, judge2] = await Promise.all([
-    runPairwiseJudge(provider, rubric, promptText, input, baseOutput, headOutput),
-    runPairwiseJudge(provider, rubric, promptText, input, headOutput, baseOutput),
-  ]);
+  const judge1 = await runPairwiseJudge(
+    provider,
+    rubric,
+    promptText,
+    input,
+    baseOutput,
+    headOutput,
+    judgeModel
+  );
+  const judge2 = await runPairwiseJudge(
+    provider,
+    rubric,
+    promptText,
+    input,
+    headOutput,
+    baseOutput,
+    judgeModel
+  );
 
   const reverseMapping: Record<string, 'base' | 'head' | 'tie'> = {
     base: 'head',

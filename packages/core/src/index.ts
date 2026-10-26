@@ -1,4 +1,5 @@
 export * from './config.js';
+export * from './models.js';
 export * from './types.js';
 export * from './engine.js';
 export * from './providers/index.js';
