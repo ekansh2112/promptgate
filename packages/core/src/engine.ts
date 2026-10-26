@@ -103,11 +103,13 @@ export class PromptGateEngine {
     promptConfig: PromptConfig
   ): Promise<PromptResult> {
     const testSet = await this.loadTestSet(promptConfig.testSet);
-    const basePromptText = await this.loadPrompt(
-      path.join(this.options.baseDir, promptConfig.path)
+    const basePromptText = await this.loadPromptFromRef(
+      promptConfig.path,
+      this.options.baseRef
     );
-    const headPromptText = await this.loadPrompt(
-      path.join(this.options.headDir, promptConfig.path)
+    const headPromptText = await this.loadPromptFromRef(
+      promptConfig.path,
+      this.options.headRef
     );
 
     const caseResults: CaseResult[] = [];

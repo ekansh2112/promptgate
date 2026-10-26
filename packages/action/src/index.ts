@@ -29,15 +29,10 @@ async function run() {
     const changedFiles = await getChangedFiles(baseRef, headRef);
     core.info(`Changed files: ${changedFiles.length}`);
 
-    await checkoutRef(baseRef, '/tmp/promptgate-base');
-    await checkoutRef(headRef, '/tmp/promptgate-head');
-
     const provider = await createProvider(apiUrl);
 
     const engine = new PromptGateEngine({
       configPath: path.join(workspacePath, configPath),
-      baseDir: '/tmp/promptgate-base',
-      headDir: '/tmp/promptgate-head',
       provider,
       baseRef,
       headRef,
