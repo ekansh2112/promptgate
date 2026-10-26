@@ -24,8 +24,6 @@ import {
 
 export interface EngineOptions {
   configPath: string;
-  baseDir: string;
-  headDir: string;
   provider: Provider;
   baseRef: string;
   headRef: string;
