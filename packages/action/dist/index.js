@@ -149566,7 +149566,11 @@ async function run() {
       { retentionDays: 30 }
     );
     if (github.context.payload.pull_request && process.env.GITHUB_TOKEN) {
-      await postPRComment(report);
+      if (report.prompts.length === 0) {
+        core.info("No prompts evaluated; leaving existing PR comment unchanged");
+      } else {
+        await postPRComment(report);
+      }
     }
     if (uploadResults && process.env.ACTIONS_ID_TOKEN_REQUEST_URL) {
       await uploadToAPI(report, apiUrl);

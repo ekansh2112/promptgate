@@ -30,21 +30,21 @@ PromptGate solves this by automating prompt evaluation in CI with:
 
 Posted by the GitHub Action: https://github.com/ekansh2112/promptgate/pull/2#issuecomment-6427269098
 
-This PR deliberately shortened `examples/prompts/code-review.txt` so the junior head prompt differs from the expert base. Dogfood uploaded the run to the live API (`✓ Results uploaded`). Latest scored run: [40414507906](https://github.com/ekansh2112/promptgate/actions/runs/40414507906) (also [dashboard run 3](https://promptgate-dashboard.pages.dev/repos/ekansh2112/promptgate/runs/3)).
+This PR deliberately shortened `examples/prompts/code-review.txt` so the junior head prompt differs from the expert base. Dogfood uploaded the run to the live API (`✓ Results uploaded`). Latest scored run: [40415038841](https://github.com/ekansh2112/promptgate/actions/runs/40415038841) (also [dashboard run 3](https://promptgate-dashboard.pages.dev/repos/ekansh2112/promptgate/runs/3)).
 
 ```markdown
 <!-- promptgate-report -->
 
 ## ✅ PromptGate Evaluation PASSED
 
-**Base:** `3fb2b08` | **Head:** `a928e84`
+**Base:** `3fb2b08` | **Head:** `ec7fe02`
 
 ### Code Review Summary
 
 | Metric | Base | Head | Delta |
 |--------|------|------|-------|
 | Pass Rate | 50.0% | 50.0% | ➡️ +0.0% |
-| Avg Latency | 979ms | 1155ms | 176ms |
+| Avg Latency | 909ms | 1129ms | 221ms |
 | Cost | $0.0002 | $0.0001 | $-0.0001 |
 
 <details>
@@ -52,23 +52,22 @@ This PR deliberately shortened `examples/prompts/code-review.txt` so the junior 
 
 **Simple feature addition**
 
-Base: `**Summary:**
+Base: `Here is a comprehensive review and summary of the pull request:
 
-This pull request introduces a new `UserProfile` component designed to render a user's name based on a provided `userId`. However, the implementation is currently inc...`
+**Summary:**
+This pull request introduces a new `UserProfile` component designed to render a user's name based on a...`
 
 Head: `This pull request adds a new `UserProfile` component that fetches and displays a user's name based on their ID. There are no breaking changes, bug fixes, or documentation updates i...`
 
-Judge (head): Both judges agree: Version B followed all prompt instructions and negative constraints. It provided exactly two short sentences describing the changes and mentioning breaking changes/bug fixes/docs as requested. Version A violated the negative constraint ('Do not discuss security, quality, or overall impact') by criticizing the code quality and potential runtime issues, and its sentences were excessively long rather than 'short'.
+Judge (head): Both judges agree: Version B followed all prompt instructions, including negative constraints. It provided exactly two short sentences describing the changes and explicitly noted the lack of breaking changes, bug fixes, or documentation updates. In contrast, Version A failed the sentence count limit, included conversational filler, and explicitly violated the negative constraint prohibiting the discussion of code quality and overall impact.
 
 **Breaking change** 🔴 CRITICAL
 
-Base: `**Summary:**
+Base: `This pull request updates the API response structure by replacing the `data` wrapper property with `payload` and introducing a new `version: 2` metadata field. Because this alters ...`
 
-This pull request implements a breaking API response format change by replacing the previous `{ data: result }` wrapper with a new `{ payload: result, version: 2 }` s...`
+Head: `This pull request updates the API response format by wrapping the result in a `payload` property instead of `data` and adds a `version: 2` field. This is a breaking change for clie...`
 
-Head: `This PR wraps the API response in a `payload` property and adds a `version: 2` field. Because this alters the existing response structure, it introduces a breaking change.`
-
-Judge (tie): Judges disagree (position bias detected). J1: Version B strictly follows all prompt instructions and constraints. It consists of exactly two short sentences, correctly identifies the change and the breaking nature of it, and respects the negative constraint to not discuss overall impact or quality. In contrast, Version A writes three very long sentences, includes extensive analysis of overall impact and risk (violating negative constraints), and fails to match the requested 'short informal' tone.. J2: Judge evaluation failed
+Judge (head): Both judges agree: Version B strictly follows all negative and length constraints. It consists of exactly two short sentences, highlights the main changes, and explicitly mentions the breaking change without discussing quality or overall impact. Version A failed multiple negative constraints by writing three long sentences and heavily discussing overall impact and architectural quality.
 
 </details>
 
@@ -77,7 +76,7 @@ Judge (tie): Judges disagree (position bias detected). J1: Version B strictly fo
 
 **Judge Calibration:** 100.0% agreement (2 labeled cases)
 
-_Evaluated at 10/26/2026, 10:44:10 PM_
+_Evaluated at 10/26/2026, 10:48:29 PM_
 ```
 
 ## 🌐 Live Services
