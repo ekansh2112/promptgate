@@ -26,7 +26,7 @@ async function run() {
     core.info(`Base: ${baseRef}`);
     core.info(`Head: ${headRef}`);
 
-    const changedFiles = await getChangedFiles();
+    const changedFiles = await getChangedFiles(baseRef, headRef);
     core.info(`Changed files: ${changedFiles.length}`);
 
     await checkoutRef(baseRef, '/tmp/promptgate-base');
