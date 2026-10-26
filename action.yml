@@ -1,0 +1,36 @@
+name: 'PromptGate'
+description: 'CI eval gate for LLM prompts with pairwise judging and regression detection'
+author: 'ekansh2112'
+branding:
+  icon: 'shield'
+  color: 'purple'
+
+inputs:
+  config:
+    description: 'Path to promptgate.yaml config file'
+    required: false
+    default: 'promptgate.yaml'
+  base-ref:
+    description: 'Base git ref to compare against (defaults to PR base)'
+    required: false
+  head-ref:
+    description: 'Head git ref to evaluate (defaults to current commit)'
+    required: false
+  upload-results:
+    description: 'Upload results to PromptGate dashboard'
+    required: false
+    default: 'false'
+  api-url:
+    description: 'PromptGate API URL'
+    required: false
+    default: 'https://promptgate-api.ekansh-gupta.workers.dev'
+
+outputs:
+  passed:
+    description: 'Whether the evaluation passed'
+  total-cost:
+    description: 'Total cost of evaluation in USD'
+
+runs:
+  using: 'node20'
+  main: 'packages/action/dist/index.js'

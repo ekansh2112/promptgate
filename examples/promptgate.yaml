@@ -1,0 +1,22 @@
+prompts:
+  - name: "Code Review Summary"
+    path: "examples/prompts/code-review.txt"
+    model: "gemini-2.0-flash-exp"
+    variables: ["pr_title", "diff"]
+    testSet: "examples/testsets/code-review.yaml"
+    rubric: "A good code review summary should be concise (2-3 sentences), highlight the main changes, mention any potential issues or breaking changes, and use clear, professional language."
+    temperature: 0.7
+    maxTokens: 200
+
+  - name: "Bug Report Classification"
+    path: "examples/prompts/bug-classifier.txt"
+    model: "gemini-2.0-flash-exp"
+    variables: ["title", "description"]
+    testSet: "examples/testsets/bug-classifier.yaml"
+    rubric: "Classification should be accurate (critical, high, medium, low), consider both impact and urgency, and provide a brief one-sentence justification. Output must be valid JSON."
+    temperature: 0.3
+
+scoring:
+  runs: 3
+  passRateThreshold: 0.1
+  enableCache: true

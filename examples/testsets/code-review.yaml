@@ -1,0 +1,56 @@
+- name: "Simple feature addition"
+  inputs:
+    pr_title: "Add user profile page"
+    diff: |
+      + function UserProfile({ userId }) {
+      +   const user = fetchUser(userId);
+      +   return <div>{user.name}</div>;
+      + }
+  assertions:
+    - type: contains
+      value: "profile"
+    - type: length_min
+      value: 20
+    - type: length_max
+      value: 500
+
+- name: "Breaking change"
+  inputs:
+    pr_title: "BREAKING: Change API response format"
+    diff: |
+      - return { data: result };
+      + return { payload: result, version: 2 };
+  critical: true
+  assertions:
+    - type: contains
+      value: "break"
+
+- name: "Bug fix"
+  inputs:
+    pr_title: "Fix null pointer in checkout flow"
+    diff: |
+      - const total = cart.items.reduce((sum, item) => sum + item.price, 0);
+      + const total = cart?.items?.reduce((sum, item) => sum + (item.price || 0), 0) || 0;
+  assertions:
+    - type: contains
+      value: "fix"
+
+- name: "Refactoring"
+  inputs:
+    pr_title: "Refactor authentication module"
+    diff: |
+      - if (user && user.isAuthenticated && user.permissions.includes('admin')) {
+      + if (user?.isAuthenticated && hasPermission(user, 'admin')) {
+  assertions:
+    - type: not_contains
+      value: "bug"
+
+- name: "Documentation update"
+  inputs:
+    pr_title: "Update README installation instructions"
+    diff: |
+      - npm install
+      + pnpm install
+  assertions:
+    - type: contains
+      value: "documentation"

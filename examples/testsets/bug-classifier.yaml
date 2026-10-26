@@ -1,0 +1,46 @@
+- name: "Production crash"
+  inputs:
+    title: "App crashes on startup for all users"
+    description: "Since v2.1 deployed, all users experience immediate crash on app launch. Error logs show null pointer exception."
+  critical: true
+  assertions:
+    - type: json_equals
+      path: "severity"
+      value: "critical"
+
+- name: "Data loss risk"
+  inputs:
+    title: "User data not saved in checkout"
+    description: "Payment goes through but user address and preferences are lost. Affects approximately 5% of checkouts."
+  critical: true
+  assertions:
+    - type: json_in
+      path: "severity"
+      values: ["critical", "high"]
+
+- name: "Visual glitch"
+  inputs:
+    title: "Button misaligned on mobile"
+    description: "The submit button appears 2px lower than expected on iPhone 13. Functionality works fine."
+  assertions:
+    - type: json_in
+      path: "severity"
+      values: ["low", "medium"]
+
+- name: "Performance degradation"
+  inputs:
+    title: "Dashboard loads slowly"
+    description: "Dashboard taking 5-8 seconds to load, up from 1-2 seconds. Only affects users with >1000 items."
+  assertions:
+    - type: json_in
+      path: "severity"
+      values: ["medium", "high"]
+
+- name: "Edge case error"
+  inputs:
+    title: "Error when username contains emoji"
+    description: "Users with emoji in username see error message. Workaround: remove emoji. Affects <0.1% of users."
+  assertions:
+    - type: json_equals
+      path: "severity"
+      value: "low"

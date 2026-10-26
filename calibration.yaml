@@ -1,0 +1,18 @@
+# PromptGate Judge Calibration Labels
+# 
+# Label outputs as 'good' or 'bad' to measure judge agreement.
+# PromptGate will report what percentage of the time the LLM judge
+# agrees with your human labels.
+#
+# Example:
+# - promptName: "Code Review Summary"
+#   caseName: "Simple feature addition"
+#   output: "This PR adds a user profile page..."
+#   label: good
+#
+# - promptName: "Code Review Summary"
+#   caseName: "Breaking change"
+#   output: "Minor UI tweak"
+#   label: bad  # Judge should have caught that this misses the breaking change
+
+[]

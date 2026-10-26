@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+jobs:
+  lint-test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Check dist is up to date
+        run: |
+          git diff --exit-code packages/action/dist/
+        if: github.event_name == 'pull_request'
+
+  dogfood:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs: lint-test-build
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout base
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          mkdir -p /tmp/promptgate-base
+          git archive origin/${{ github.event.pull_request.base.ref }} | tar -x -C /tmp/promptgate-base
+
+      - name: Checkout head
+        run: |
+          mkdir -p /tmp/promptgate-head
+          git archive HEAD | tar -x -C /tmp/promptgate-head
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install and build
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Run PromptGate
+        uses: ./
+        with:
+          config: 'examples/promptgate.yaml'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
